@@ -14,14 +14,25 @@ import numpy as np
     #       for the desired number of Causal Perturbations. 
 # 
 # OUTPUTS: 
-    # the number of Events until the system first became Static, 
-    # the Seed, the Initial Grid, the Resultant Grid, 
-    # the number of Events to become Static after Causal Perturbations, 
-    # the number of Perturbations to reach the desired number of Causal Perturbations, 
-    # the Differential Matrix equivalent to the Resultant Grid minus the Initial Grid, 
-    # the Differential Sum equivalent to the summation of each element of the Differential Matrix, 
-    # the Mask that shows which cells have been effected by Perturbations, 
-    # the Size equivalent to the summation of each element of the Mask.
+    # number of Events until the system first became Static, 
+    # Seed, the Initial Grid, the Resultant Grid, 
+    # number of Events to become Static after Causal Perturbations, 
+    # number of Perturbations to reach the desired number of Causal Perturbations, 
+    # Differential Matrix equivalent to the Resultant Grid minus the Initial Grid, 
+    # Differential Sum equivalent to the summation of each element of the Differential Matrix, 
+    # Mask that shows which cells have been effected by Perturbations,
+    # Size equivalent to the summation of each element of the Mask.
+#
+#! USAGE:
+    # run the program in an environment with Python 3.X and NumPy installed
+    # the user will be prompted with three questions
+        # return blank to submit the default response, given in brackets
+    # observe the outputs in the terminal
+    # the user will be asked if they wish to run the simulation again
+        # return blank to quit and terminate the program
+    #
+    # the default responses are intended to simulate the BTW model
+        # any 2-dimensional grid size can be specified
 
 # TODO: investigate the synchronised computation of events via time-steps
 # TODO: implement matplotlib to visualise CA
@@ -159,13 +170,13 @@ class CellularAutomaton(): # TODO: general documentation
 
 
 if __name__ == "__main__":
-    # np.set_printoptions(threshold=sys.maxsize)
+    np.set_printoptions(threshold=sys.maxsize)
     debug_tools = False
-    user_perturbations = int(input("How many perturbations should be performed? [1]") or "1")
-    user_initial_condition = input("What initial conditions should be applied? [30max10min]") or "30max10min"
-    user_dimensions = (int(a) for a in (input("What dimensions should be used? [24,24]") or "24,24").split(","))
+    user_perturbations = int(input("How many causal perturbations should be performed? [1]") or "1")
+    user_initial_condition = input("What initial conditions should be applied? [max30min10]") or "max30min10"
+    user_dimensions = tuple(int(a) for a in (input("What dimensions should be used? [25,25]") or "25,25").split(","))
     while True:
-        machine = CellularAutomaton(initial_condition="max30min10", dimensions=(24,24))
+        machine = CellularAutomaton(initial_condition=user_initial_condition, dimensions=user_dimensions)
         machine.run(user_perturbations, debug_flag=debug_tools)
         retry = input("Retry? [y/(n)]") or "n"
         if retry == "n":
