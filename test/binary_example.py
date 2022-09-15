@@ -1,3 +1,8 @@
+# exmple work found public on GitHub
+# https://github.com/IlievskiV/Amusive-Blogging-N-Coding/tree/master/Cellular%20Automata
+# not useful for CA
+# might be useful for visualisation
+
 # import libraries
 import numpy as np
 import matplotlib.pyplot as plt
