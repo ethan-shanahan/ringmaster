@@ -1,0 +1,20 @@
+Initialise the grid with the following user inputs:
+    initial condition       (how the grid is populated at the moment it is created)                 (ic)
+    boundary condition      (fixed operations applied after each step)                              (bc)
+    update rule             (how cells are altered during an event)                                 (rule)
+    perturbation scheme     (method of artificial interference with the system)                     (pert)
+    dimensions              (the dimensions of the grid, currently supports 2 dimensions only)      (dim)
+
+Default user inputs:
+    ic      max30min10      (cells are given a value at random between 10 and 30)
+    bc      cliff           (cells on the edge of the grid must have a value of 0)
+    rule    BTW             (the rule described in the BTW paper)
+    pert    random1         (a random cell's value is increased by 1)
+    dim     25,25           (the grid has dimensions of 25 cells by 25 cells)
+
+Run a simulation on the grid that executes the desired number of perturbations.
+
+Issues:
+    -The code currently only support two-dimensional grids. It should be generalised to n-dimensional arrays.
+    -The lack of synchronicity may cause the occasional misfire of an event. I will investigate the "abelian sand pile" model to 
+     hopefully resolve this.

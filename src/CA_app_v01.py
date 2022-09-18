@@ -40,8 +40,8 @@ import numpy as np
 class CellularAutomaton(): # TODO: general documentation
     def __init__(self, 
                  perturbation_scheme="random1",update_rule="BTW", 
-                 boundary_condition="cliff", initial_condition="max3min0", 
-                 dimensions=(10,10)):
+                 boundary_condition="cliff", initial_condition="max30min10", 
+                 dimensions=(25,25)):
         self.rng = np.random.default_rng()
         self.pert = getattr(self, f"perturbation_{perturbation_scheme}")
         self.rule = getattr(self, f"rule_{update_rule}")
