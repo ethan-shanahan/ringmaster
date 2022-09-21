@@ -39,33 +39,37 @@ import numpy as np
 
 class CellularAutomaton(): # TODO: general documentation
     def __init__(self, 
-                 perturbation_scheme="random1",update_rule="BTW", 
-                 boundary_condition="cliff", initial_condition="max30min10", 
-                 dimensions=(25,25)):
+                 perturbation_scheme,update_rule, 
+                 boundary_condition, initial_condition, 
+                 dimensions):
         self.rng = np.random.default_rng()
         self.pert = getattr(self, f"perturbation_{perturbation_scheme}")
         self.rule = getattr(self, f"rule_{update_rule}")
         self.bc = getattr(self, f"boundary_{boundary_condition}")
         self.ic = getattr(self, f"initial_{initial_condition}")
         self.dim = dimensions
-        self.grid = self.ic()
+        self.present_grid = self.ic()
+        self.future_grid = self.present_grid.copy()
         self.bc()
-        self.seed = self.grid.copy()
+        self.seed = self.present_grid.copy()
+        self.ts = -1
         self.events = 0
         self.perturbations = 0
+        self.energy = 0
         self.mask = np.zeros(self.dim, dtype=np.int8)
 
 # PERTURBATION SCHEMES (all perturbations are applied when the system is still and must return search_group and search_area)
 
     def perturbation_random1(self): # TODO: adapt to n dimensions
         self.perturbations += 1
-        i = self.rng.integers(0, self.dim[0] - 1)
+        i = self.rng.integers(0, self.dim[0] - 1) # TODO: check if this covers the entire grid
         j = self.rng.integers(0, self.dim[1] - 1)
         search_group = [(i,j), (0,0)]
         search_area = len(search_group)
-        self.grid[search_group[0]] += 1 # the perturbation itself
+        print(f"Random Perturbation of Cell ({i},{j})")
+        self.present_grid[search_group[0]] += 1 # the perturbation itself
         return search_group, search_area
-    
+
     def perturbation_control(self): # TODO: adapt to n dimensions
         self.perturbations += 1
         if self.dim[0] % 2 == 0:
@@ -78,8 +82,10 @@ class CellularAutomaton(): # TODO: general documentation
             j = int((self.dim[1] - 1) / 2)
         search_group = [(i,j), (0,0)]
         search_area = len(search_group)
-        self.grid[search_group[0]] += 1 # the perturbation itself
+        print(f"Controlled Perturbation of Cell ({i},{j})")
+        self.present_grid[search_group[0]] += 1 # the perturbation itself
         return search_group, search_area
+
 
 # INITIAL CONDITIONS (all initials must describe how the grid is seeded/generated)
 
@@ -90,7 +96,6 @@ class CellularAutomaton(): # TODO: general documentation
         return self.rng.integers(10, 30, size=self.dim, endpoint=True)
     
     def initial_control(self):
-        self.dim = (25,25)
         return np.array(
             [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
              [0, 19, 10, 14, 10, 10, 27, 27, 10, 14, 17, 24, 22, 29, 10, 30, 27, 19, 15, 20, 17, 16, 28, 21, 0],
@@ -123,31 +128,36 @@ class CellularAutomaton(): # TODO: general documentation
 
     def boundary_cliff(self): # TODO: adapt to n dimensions
         for i in range(self.dim[0]):
-            self.grid[i, 0] = 0
-            self.grid[i,-1] = 0
+            self.present_grid[i, 0] = 0
+            self.present_grid[i,-1] = 0
+            self.future_grid[i, 0] = 0
+            self.future_grid[i,-1] = 0
         for i in range(self.dim[1]):
-            self.grid[0, i] = 0
-            self.grid[-1,i] = 0
+            self.present_grid[0, i] = 0
+            self.present_grid[-1,i] = 0
+            self.future_grid[0, i] = 0
+            self.future_grid[-1,i] = 0
 
-# UPDATE RULES (all rules must manipulate self.grid, return a tuple of the cells that should be searched following an update, and increment events if executed)
+# UPDATE RULES (all rules must manipulate self.future_grid, return a tuple of the cells that should be searched following an update, and increment events&energy if executed)
 
     def rule_BTW(self, cell, boolean_flag=False):
-        if self.grid[cell] >= 4:
+        if self.present_grid[cell] >= 4:
             if boolean_flag:
                 return True
             self.events += 1
+            self.energy += 4
             i, j = cell
             minus_cells = ((i,j), (0,0))
             plus_cells = ((i+1,j),(i-1,j),(i,j+1),(i,j-1))
-            affected_cells = ((i,j), (i+1,j),(i-1,j),(i,j+1),(i,j-1))
+            # affected_cells = ((i,j), (i+1,j),(i-1,j),(i,j+1),(i,j-1))
             
             for c in minus_cells:
-                self.grid[c] -= 4
+                self.future_grid[c] -= 4
             for c in plus_cells:
-                self.grid[c] += 1
+                self.future_grid[c] += 1
             
             if self.perturbations != 0:
-                for y in affected_cells:
+                for y in plus_cells: #? Should the perturbation site be included in the size?
                     self.mask[y] = 1
 
             return plus_cells
@@ -160,50 +170,65 @@ class CellularAutomaton(): # TODO: general documentation
 ####
         search_group = list(itt.product(range(self.dim[0]),range(self.dim[1]))) # TODO: adapt to n dimensions
         search_area = len(search_group)
+
+        future_grid = self.present_grid.copy()
+        future_search_group = []
+
         while True:
             cursor = 0
-            while search_area > 0:
+            while search_area != 0:
                 cell = search_group[cursor]
                 if self.rule(cell, boolean_flag=True):
                     add_to_search = self.rule(cell)
-                    search_area += len(add_to_search)
                     for x in add_to_search:
-                        search_group.append(x)
+                        future_search_group.append(x)
                     self.bc()
                 search_area -= 1
                 cursor += 1
+                if search_area == 0:
+                    self.present_grid = self.future_grid
+                    search_group = future_search_group
+                    search_area = len(search_group)
+                    future_search_group = []
+                    if self.events != 0:
+                        self.ts += 1
+                    cursor = 0
 ####
                 if debug_flag == True:
+                    print(f"search_area:{search_area},\tcursor:{cursor}")
                     d += 1
                     print(f"Cycle:{d}\nEvents so far:{self.events}\nPerturbations so far:{self.perturbations}\n\n")
                     if d % 100 == 0:
                         continuation_a = input("Continue? [(y)/n]") or "y"
                         if continuation_a == "n":
-                            print(f"Seed:\n{self.seed}\nStatic:\n{initial_grid}\nCurrent:\n{self.grid}")
-                            differential = self.grid - initial_grid
+                            print(f"Seed:\n{self.seed}\nStatic:\n{initial_grid}\nCurrent:\n{self.present_grid}")
+                            differential = self.present_grid - initial_grid
                             print(f"Differential:\n{differential}\nDifferential Sum:{differential.sum()}\n")
                             raise Exception("manual termination")
 ####
 
             if self.perturbations == 0:
-                print(f"The grid has become static after {self.events} events...\n{self.grid}")
+                print(f"\nThe grid has become static after {self.events} events and {self.ts} time-steps...\n{self.present_grid}\n")
 ####
                 if debug_flag == True:
                     continuation_b = input("Continue? [(y)/n]") or "y"
                     if continuation_b == "n":
-                        print(f"Seed:\n{self.seed}\nCurrent:\n{self.grid}")
-                        differential = self.grid - initial_grid
+                        print(f"Seed:\n{self.seed}\nCurrent:\n{self.present_grid}")
+                        differential = self.present_grid - initial_grid
                         print(f"Differential:\n{differential}\nSum:{differential.sum()}\n")
                         raise Exception("manual termination")
 ####
                 self.events = 0
-                initial_grid = self.grid.copy()
+                self.energy = 0
+                self.ts = -1
+                initial_grid = self.present_grid.copy()
 
             elif self.perturbations >= desired_perturbations and self.events != 0: # TODO: create output functions and visualisations
-                differential = self.grid - initial_grid
-                print(f"Events:{self.events}", f"Perturbations:{self.perturbations}",
+                differential = self.present_grid - initial_grid
+                print(f"\nEvents:{self.events}", f"Perturbations:{self.perturbations}", f"Duration:{self.ts}", f"Energy:{self.energy}",
                       f"\n",
-                      f"Seed:\n{self.seed}", f"Static:\n{initial_grid}", f"Result:\n{self.grid}",
+                      f"Seed:\n{self.seed}", f"Static:\n{initial_grid}",
+                      f"Result:\n{self.present_grid}", f"Mass:{self.present_grid.sum() / np.prod(self.dim)}",
                       f"\n",
                       f"Differential Matrix:\n{differential}", f"Differential Sum:{differential.sum()}",
                       f"Mask (affected cells equal 1):\n{self.mask}", f"Size:{self.mask.sum()}",
@@ -216,12 +241,16 @@ class CellularAutomaton(): # TODO: general documentation
 if __name__ == "__main__":
     # np.set_printoptions(threshold=sys.maxsize)
     debug_tools = False
-    user_scheme = input("What perturbation scheme should be performed? [random1]") or "random1"
-    user_perturbations = int(input("How many causal perturbations should be performed? [1]") or "1")
-    user_initial_condition = input("What initial conditions should be applied? [max30min10]") or "max30min10"
-    user_dimensions = tuple(int(a) for a in (input("What dimensions should be used? [25,25]") or "25,25").split(","))
+    user_scheme = input("What perturbation scheme should be performed? [random1]\t") or "random1"
+    user_rule = input("What update rule should be implemented? [BTW]\t\t") or "BTW"
+    user_boundary_condition = input("What boundary condition should be used? [cliff]\t\t") or "cliff"
+    user_initial_condition = input("What initial conditions should be applied? [max30min10]\t") or "max30min10"
+    user_dimensions = tuple(int(a) for a in (input("What dimensions should be used? [25,25]\t\t\t") or "25,25").split(","))
+    user_perturbations = int(input("How many causal perturbations should be performed? [1]\t") or "1")
     while True:
-        machine = CellularAutomaton(perturbation_scheme=user_scheme, initial_condition=user_initial_condition, dimensions=user_dimensions)
+        machine = CellularAutomaton(perturbation_scheme=user_scheme, update_rule=user_rule,
+                                    boundary_condition=user_boundary_condition, initial_condition=user_initial_condition,
+                                    dimensions=user_dimensions)
         machine.run(user_perturbations, debug_flag=debug_tools)
         retry = input("Retry? [y/(n)]") or "n"
         if retry == "n":
