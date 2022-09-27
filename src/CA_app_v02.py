@@ -34,8 +34,8 @@ import numpy as np
     # the default responses are intended to simulate the BTW model
         # any 2-dimensional grid size can be specified
 
-# TODO: investigate the synchronised computation of events via time-steps
 # TODO: implement matplotlib to visualise CA
+# TODO: track computation time, try to optimise
 
 class CellularAutomaton(): # TODO: general documentation
     def __init__(self, 
@@ -208,7 +208,7 @@ class CellularAutomaton(): # TODO: general documentation
 ####
 
             if self.perturbations == 0:
-                print(f"\nThe grid has become static after {self.events} events and {self.ts} time-steps...\n{self.present_grid}\n")
+                print(f"\nThe grid has become static after {self.events} events and {self.ts} time-steps...\n")
 ####
                 if debug_flag == True:
                     continuation_b = input("Continue? [(y)/n]") or "y"
@@ -239,7 +239,7 @@ class CellularAutomaton(): # TODO: general documentation
 
 
 if __name__ == "__main__":
-    # np.set_printoptions(threshold=sys.maxsize)
+    np.set_printoptions(threshold=sys.maxsize, linewidth=200)
     debug_tools = False
     user_scheme = input("What perturbation scheme should be performed? [random1]\t") or "random1"
     user_rule = input("What update rule should be implemented? [BTW]\t\t") or "BTW"
