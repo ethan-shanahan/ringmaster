@@ -5,7 +5,6 @@ import itertools as itt
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as ani
-# import matplotlib as mpl
 
 # SUMMARY:
     # Create an object of the CellularAutomaton class. 
@@ -39,8 +38,9 @@ import matplotlib.animation as ani
     # the default responses are intended to simulate the BTW model
         # any 2-dimensional grid size can be specified
 
-# TODO: implement matplotlib to visualise CA
-# TODO: dataframe output
+# TODO: improve matplotlib implementation
+# TODO: output perturbation timescale
+# TODO: consider collapses and growths
 
 class CellularAutomaton(): # TODO: general documentation
     '''Main object class...'''
@@ -239,7 +239,7 @@ class CellularAutomaton(): # TODO: general documentation
         ax = plt.axes()
         ax.clear()
         ax.set_axis_off()
-        img = ax.imshow(self.outputting if exporting_final else self.outputting[i], interpolation='none', cmap='gray') # cmap='gray', vmin=0, vmax=255 # cmap='RdPu'
+        img = ax.imshow(self.outputting if exporting_final else self.outputting[i], interpolation='none', cmap='gray')
         if exporting_final: return plt.savefig(png_file, dpi=300, bbox_inches='tight')
         return [img]
 
