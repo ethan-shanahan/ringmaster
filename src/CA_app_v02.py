@@ -1,4 +1,5 @@
 import sys
+import time
 import itertools as itt
 import numpy as np
 # import matplotlib as mpl
@@ -36,6 +37,7 @@ import numpy as np
 
 # TODO: implement matplotlib to visualise CA
 # TODO: track computation time, try to optimise
+# TODO: dataframe output
 
 class CellularAutomaton(): # TODO: general documentation
     def __init__(self, 
@@ -239,6 +241,7 @@ class CellularAutomaton(): # TODO: general documentation
 
 
 if __name__ == "__main__":
+    st = time.process_time()
     np.set_printoptions(threshold=sys.maxsize, linewidth=200)
     debug_tools = False
     user_scheme = input("What perturbation scheme should be performed? [random1]\t") or "random1"
@@ -252,6 +255,8 @@ if __name__ == "__main__":
                                     boundary_condition=user_boundary_condition, initial_condition=user_initial_condition,
                                     dimensions=user_dimensions)
         machine.run(user_perturbations, debug_flag=debug_tools)
+        et = time.process_time()
+        print(f"Processing Time: {et-st}")
         retry = input("Retry? [y/(n)]") or "n"
         if retry == "n":
             break
