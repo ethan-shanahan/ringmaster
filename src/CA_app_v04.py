@@ -1,8 +1,11 @@
 import sys
 import time
+import csv
 import itertools as itt
 import numpy as np
-import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.animation as ani
+# import matplotlib as mpl
 
 # SUMMARY:
     # Create an object of the CellularAutomaton class. 
@@ -61,6 +64,10 @@ class CellularAutomaton(): # TODO: general documentation
         self.ts = 0
         self.energy = 0
         self.mask = np.zeros(self.dim, dtype=np.int8)
+        self.data = []
+        self.pg_complied = [self.pg]
+        self.mask_complied = [self.mask]
+        self.outputting = []
 
 # INITIAL CONDITIONS (all initial conditions must describe how the grid is seeded/generated and apply the boundary condition)
 
@@ -156,7 +163,7 @@ class CellularAutomaton(): # TODO: general documentation
 
 # COMPUTATIONS HENCEFORTH...
 
-    def run(self, desired_perturbations):
+    def run(self, desired_perturbations, output_directory):
         pset = list(itt.product(*list(list(x for x in range(self.dim[n])) for n in range(self.ndim))))
         area = len(pset)
         fset = set()
@@ -169,22 +176,34 @@ class CellularAutomaton(): # TODO: general documentation
                 area -= 1
                 cursor += 1
                 if area == 0:
-                    if self.energy != 0: self.pg = self.fg.copy()
                     pset = list(dict.fromkeys(fset))
                     area = len(pset)
                     fset = set()
                     cursor = 0
-                    if self.energy != 0: self.ts += 1
+                    if self.energy != 0:
+                        self.pg = self.fg.copy()
+                        self.ts += 1
+                        self.data.append({'time' : self.ts, 'energy' : self.energy, 'mass' : self.pg.sum() / np.prod(self.dim), 'size' : self.mask.sum()})
+                        self.pg_complied.append(self.pg)
+                        self.mask_complied.append(self.mask)
             if self.perturbations == 0:
-                print(f"\nA Stable Configuration was Reached After {self.ts} time-steps\n")
-                self.energy, self.ts = 0, 0
                 ig = self.pg.copy()
+                print(f"\nA stable configuration was reached after {self.ts} time-steps...\n",
+                      f"Seed:\n{self.seed}", f"Initial Grid:\n{ig}",
+                      sep='\n')
+                if not input('Return empty to generate outputs:\t\t\t'):
+                    self.export(csv_file=f'{output_directory}initial_data.csv')
+                    self.outputting = self.pg.copy()
+                    self.visualise(png_file=f'{output_directory}initial_grid.png', i=None, exporting_final=True)
+                    self.outputting = self.pg_complied.copy()
+                    self.animate(gif_file=f'{output_directory}initial_grid_animation.gif')
+                self.energy, self.ts= 0, 0
+                self.pg_complied, self.mask_complied = [self.pg], [self.mask]
             elif self.perturbations >= desired_perturbations and self.energy != 0: #! works for a single causal perturbation only
                 diff = self.pg - ig
                 print(f"",
                       f"Perturbations:{self.perturbations}", f"Duration:{self.ts}", f"Energy:{self.energy}",
                       f"\n",
-                      f"Seed:\n{self.seed}", f"Initial Grid:\n{ig}",
                       f"Resultant Grid:\n{self.pg}",
                       f"\n",
                       f"Mass:{self.pg.sum() / np.prod(self.dim)}", f"Size:{self.mask.sum()}",
@@ -192,9 +211,44 @@ class CellularAutomaton(): # TODO: general documentation
                       f"Differential Matrix:\n{diff}", f"Differential Sum:{diff.sum()}",
                       f"Mask:\n{self.mask}",
                       sep="\n")
+                if not input('Return empty to generate outputs:\t\t\t'):
+                    self.export(csv_file=f'{output_directory}resultant_data.csv')
+                    self.outputting = self.pg.copy()
+                    self.visualise(png_file=f'{output_directory}resultant_grid.png', i=None, exporting_final=True)
+                    self.outputting = self.mask.copy()
+                    self.visualise(png_file=f'{output_directory}resultant_mask.png', i=None, exporting_final=True)
+                    self.outputting = self.pg_complied.copy()
+                    self.animate(gif_file=f'{output_directory}resultant_grid_animation.gif')
+                    self.outputting = self.mask_complied.copy()
+                    self.animate(gif_file=f'{output_directory}resultant_mask_animation.gif')
                 return
-            
+            self.pg_complied.append(self.pg)
+            self.mask_complied.append(self.mask)
             pset, area = self.pert()
+        
+    def export(self, csv_file):
+        with open(csv_file, 'w') as f:
+            writer = csv.DictWriter(f, fieldnames=['time','energy','mass','size'])
+            writer.writeheader()
+            writer.writerows(self.data)
+        self.data = []
+    
+    def visualise(self, i, png_file=None, exporting_final=False):
+        if exporting_final: 
+            fig = plt.figure(figsize=self.dim)
+        ax = plt.axes()
+        ax.clear()
+        ax.set_axis_off()
+        img = ax.imshow(self.outputting if exporting_final else self.outputting[i], interpolation='none', cmap='gray') # cmap='gray', vmin=0, vmax=255 # cmap='RdPu'
+        if exporting_final: return plt.savefig(png_file, dpi=300, bbox_inches='tight')
+        return [img]
+
+    def animate(self, gif_file):
+        fig = plt.figure(figsize=self.dim)
+        ax = plt.axes()
+        ax.set_axis_off()
+        animator = ani.FuncAnimation(fig, self.visualise, frames=self.ts+1, interval=100, blit=True)
+        animator.save(gif_file, writer='imagemagick')
 
 
 if __name__ == "__main__":
@@ -205,12 +259,13 @@ if __name__ == "__main__":
     user_initial_condition = input("What initial conditions should be applied? [max30min10]\t") or "max30min10"
     user_dimensions = tuple(int(a) for a in (input("What dimensions should be used? [25,25]\t\t\t") or "25,25").split(","))
     user_perturbations = int(input("How many causal perturbations should be performed? [1]\t") or "1")
+    user_output = input("Relative Output Directory: [output]\t\t\t") or "output"
     while True:
         st = time.process_time()
         machine = CellularAutomaton(perturbation_scheme=user_scheme, update_rule=user_rule,
                                     boundary_condition=user_boundary_condition, initial_condition=user_initial_condition,
                                     dimensions=user_dimensions)
-        machine.run(user_perturbations)
+        machine.run(user_perturbations, f'{user_output}/data_004_')
         et = time.process_time()
         print(f"Processing Time: {et-st}")
         retry = input("Retry? [y/(n)]") or "n"
