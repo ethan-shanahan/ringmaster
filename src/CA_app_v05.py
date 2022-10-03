@@ -1,10 +1,7 @@
 import sys
 import time
-import csv
 import itertools as itt
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as ani
 from CA_vis_v01 import Visualiser as vis
 
 # SUMMARY:
@@ -39,7 +36,6 @@ from CA_vis_v01 import Visualiser as vis
 # the default responses are intended to simulate the BTW model
 # any 2-dimensional grid size can be specified
 
-# TODO: improve matplotlib implementation
 # TODO: output perturbation timescale
 # TODO: consider collapses and growths
 
@@ -100,21 +96,22 @@ class CellularAutomaton():  # TODO: general documentation
 
 # UPDATE RULES (all rules must manipulate self.fg, return a tuple of the cells that should be searched following an event, and increment energy if executed)
 
-    def rule_ASM(self, cell):  # TODO: use sets if possible
-        if self.pg[cell] >= 4:
-            icell = dict(zip([i for i in range(self.ndim)], cell))
-            minus_cells = [tuple(icell[i] for i in icell)]
-            plus_cells = set(tuple(icell[i]+1 if n/2 == i else icell[i]-1 if n //
-                             2 == i else icell[i] for i in icell) for n in range(self.ndim*2))
-            # affected_cells = minus_cells + plus_cells
+    def rule_ASM(self, cell, checking=False):  # TODO: use sets where possible
+        icell = dict(zip([i for i in range(self.ndim)], cell))
+        minus_cells = [tuple(icell[i] for i in icell)]
+        plus_cells = set(tuple(icell[i]+1 if n/2 == i else icell[i]-1 if n //
+                         2 == i else icell[i] for i in icell) for n in range(self.ndim*2))
+        # affected_cells = minus_cells + plus_cells
+        if self.pg[cell] >= len(plus_cells):
+            if checking: return checking
 
             for c in minus_cells:
-                self.fg[c] -= 4
+                self.fg[c] -= len(plus_cells)
             for c in plus_cells:
                 self.fg[c] += 1
             self.bc()
 
-            # self.energy += 4
+            # self.energy += len(plus_cells)
             # if self.perturbations != 0:
             #     for y in plus_cells: self.mask[y] = 1
             self.energy += 1
@@ -129,8 +126,8 @@ class CellularAutomaton():  # TODO: general documentation
 
     def perturbation_random1(self):
         self.perturbations += 1
-        while self.pg[(target := tuple(self.rng.integers(0, self.dim[n]) for n in range(self.ndim)))] < 3:
-            continue  # ! only applies to rule_ASM
+        while self.rule(target := tuple(self.rng.integers(0, self.dim[n]) for n in range(self.ndim)), checking=True):
+            continue # ! infinite loop if no cells are causal
         print(f"Random Perturbation of Cell {target}")
         self.pg[target] += 1  # the perturbation itself
         self.fg[target] += 1
