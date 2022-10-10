@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as mplp
 import matplotlib.animation as mpla
 
@@ -6,27 +7,32 @@ import matplotlib.animation as mpla
 class Visualiser():
     '''docstring'''
 
-    def __init__(self, data: np.ndarray | list | dict, output_path: str) -> None:
+    def __init__(self, data: pd.DataFrame | np.ndarray | list, output_path: str, dtype: str) -> None:
         self.path = output_path
         self.data = data
-        if isinstance(self.data, np.ndarray):
+        self.dtype = dtype
+        if self.dtype == 'graphs':
+            self.fig, self.axes = mplp.subplots(1, len(self.data.columns))
+            self.artist = getattr(self, "gen_graphs")
+        elif self.dtype == 'image':
             self.fig = mplp.figure(figsize=self.data.shape)
             self.ax = mplp.axes()
             self.artist = getattr(self, "gen_image")
-        elif isinstance(self.data, list):
+        elif self.dtype == 'movie':
             self.fig = mplp.figure(figsize=self.data[0].shape)
             self.ax = mplp.axes()
             self.artist = getattr(self, "gen_movie")
             self.nframes = len(self.data)
-        elif isinstance(self.data, dict):
-            self.fig, self.axes = mplp.subplots(1, len(self.data)-1)
-            self.artist = getattr(self, "gen_graphs")
-            self.graphs = dict(
-                zip([k for n, k in enumerate(self.data.keys()) if n != 0], self.axes))
         else:
             raise TypeError(
                 f'Visualiser does not support {type(self.data)} data.')
         self.fig.set_tight_layout(True)
+
+    def gen_graphs(self):
+        mplp.figure(self.fig)
+        for col, axe in zip(list(self.data.columns), self.axes):
+            axe.plot(col, data=self.data)  # TODO design graphs
+        mplp.savefig(self.path, dpi=300)
 
     def gen_image(self):
         mplp.figure(self.fig)
@@ -39,19 +45,12 @@ class Visualiser():
         self.ax.set_axis_off()
         animator = mpla.FuncAnimation(
             self.fig, self.gen_frame, frames=self.nframes, interval=200, blit=True)
-        print(f'Generating {self.nframes} Frames: ', end='')
+        print(f'\nGenerating {self.nframes} Frames: ', end='')
         animator.save(self.path, dpi=100, writer='pillow',
-                      progress_callback=lambda i, n: print(f'{i}', end='-')) # ? look into progress_callback
-
-    def gen_graphs(self):
-        mplp.figure(self.fig)
-        for column, axe in self.graphs.items():
-            axe.plot(next(iter(self.data)), column,
-                     data=self.data)  # TODO design graphs
-        mplp.savefig(self.path, dpi=300)
+                      progress_callback=lambda i, n: print(i, end='-')) # ? look into progress_callback
 
     def gen_frame(self, i) -> list:
-        return [self.ax.imshow(self.data[i], interpolation='none', cmap='gray')]
+        return [self.ax.imshow(self.data[i], interpolation='none', cmap='gray')] # pre map to remove fluctuations
 
 
 if __name__ == '__main__':
