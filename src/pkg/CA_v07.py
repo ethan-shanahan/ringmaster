@@ -172,15 +172,15 @@ class CellularAutomaton():
         elif not clear:
             self.series.append(self.time)
             self.data = np.concatenate((self.data, np.array([[self.energy, self.size, self.mass]])))
-            self.append_temp('grids', self.pg)
-            self.append_temp('masks', self.mask)
+            # !self.append_temp('grids', self.pg)
+            # !self.append_temp('masks', self.mask)
 
     def append_temp(self, temp_type: str, new_data: np.ndarray) -> None:
-        temp_file = self.temp_dir.name + f'\\temp_{temp_type}{self.state}.npz'
+        temp_file = self.temp_dir.name + f'\\temp_{temp_type}.npz'
         bio = io.BytesIO()
         np.save(bio, new_data)
         with zipfile.ZipFile(temp_file, 'a') as temp:
-            temp.writestr(f'frame{self.time}.npy', data=bio.getbuffer().tobytes())
+            temp.writestr(f'state{self.state}_frame{self.time}.npy', data=bio.getbuffer().tobytes())
     
     def run(self, desired_stable_states: int) -> dict:
         start_time = time.process_time()
@@ -217,19 +217,19 @@ class CellularAutomaton():
                     
             if self.state == 0:
                 end_transient = time.process_time()
-                print( "**********************************************************************************",
-                       "",
-                      f"Seed:\n{self.seed}",
-                       "",
-                      f"Initial Transient Grid:\n{self.ig}",
-                       "",
-                      f"The duration of the transient state was {self.time}.",
-                       "",
-                      f"Initial Stable Grid:\n{self.pg}",
-                       "",
-                       "**********************************************************************************",
-                      sep='\n')
-                del self.ig
+                # print( "**********************************************************************************",
+                #        "",
+                #       f"Seed:\n{self.seed}",
+                #        "",
+                #       f"Initial Transient Grid:\n{self.ig}",
+                #        "",
+                #       f"The duration of the transient state was {self.time}.",
+                #        "",
+                #       f"Initial Stable Grid:\n{self.pg}",
+                #        "",
+                #        "**********************************************************************************",
+                #       sep='\n')
+                # del self.ig
                 # input('...')
             # else:
                 # print( "**********************************************************************************",
@@ -253,13 +253,12 @@ class CellularAutomaton():
                       else f'stable_{self.state}':{'data':self.data.copy(), 
                                                    'grid':self.pg.copy(), 
                                                    'mask':self.mask.copy(),
-                                                   'grids':self.temp_dir.name + f'\\temp_grids{self.state}.npz',
-                                                   'masks':self.temp_dir.name + f'\\temp_masks{self.state}.npz'}})
+                                                   'grids':self.temp_dir.name + f'\\temp_grids.npz',
+                                                   'masks':self.temp_dir.name + f'\\temp_masks.npz'}})
             self.log(clear=True)
             self.state += 1
         end_stable = time.process_time()
         self.comp_time = {'transient':end_transient-start_time, 'stable':end_stable-end_transient}
-        print('\n~finished a machine~\n\n')
         return results
             
 

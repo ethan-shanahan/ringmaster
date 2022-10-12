@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as mplp
 
+# TODO: make a class with methods various outputting procedures
+
 machines = {}
 ask_samples = int(input("How many samples should be gathered? [10]\t\t| ") or '10')
 ask_defaults = input("Use default values?\n\ndimensions=\t\t(10,10)\nboundary condition=\tcliff\ninitial condition=\tmax30min10\nupdate rule=\t\tASM\nperturbation scheme=\trandom1causal\nactivity=\t\tproactionary\n\n([y]/n)\t\t\t\t") or 'y'
@@ -47,6 +49,10 @@ for i, auto in enumerate(machines):
     results[f'result{i:03d}'] = machines[auto].run(user_states) # dictionary of machines results as dictionaries of states
     transient_processing_time += machines[auto].comp_time['transient']
     stable_processing_time += machines[auto].comp_time['stable']
+    print(f'\n{i+1} of {len(machines)} machines complete...')
+    remaining = (machines[auto].comp_time['transient']+machines[auto].comp_time['stable']) * ask_samples - (transient_processing_time + stable_processing_time)
+    print(f'Remaining duration ~{remaining}')
+
 total_processing_time = transient_processing_time + stable_processing_time
 
 print( "\n",
@@ -88,13 +94,13 @@ for i, result in enumerate(results):
         sizes[f'result{i:03d}'].sort()
 # print('Sizes: ', sizes)
 
-print(sizes)
-fig, axes = mplp.subplots(1, 2)
+# print(sizes)
+fig, axes = mplp.subplots(1, 3)
 
 lengths = [max(sizes[res]) for res in sizes]
 max_size = max(lengths)
 # print(lengths)
-print(max_size)
+# print(max_size)
 # for i, sizes in enumerate(states):
 #     if len(states[sizes]) == max_len:
 #         max_index = i
@@ -106,41 +112,68 @@ for i, res in enumerate(sizes):
     histograms[f'hist{i:03d}'] = np.array(hist_tup_proper)
 
     padding = max_size - max(sizes[res])
-    print(padding)
+    # print(padding)
     if padding > 0:
-        print(histograms[f'hist{i:03d}'])
+        # print(histograms[f'hist{i:03d}'])
         histograms[f'hist{i:03d}'] = np.pad(histograms[f'hist{i:03d}'], ((0,0),(0,padding)))
-        print(histograms[f'hist{i:03d}'])
+        # print(histograms[f'hist{i:03d}'])
     elif padding == 0:
-        scale = histograms[f'hist{i:03d}'][0,:]
+        scale = histograms[f'hist{i:03d}'][0]
 
 summation = 0
 count = 0
 for hist in histograms:
     summation += histograms[hist]
     count += 1
-avg = summation/count
-avg[0] = scale
-print('\n\n', avg)
+avg_hist = summation/count
+avg_hist[0] = scale
+# print('\n\n', avg_hist)
 
-axes[0].plot(avg[0], avg[1])
+axes[0].plot(avg_hist[0], avg_hist[1], 'b')
 
-log10_avg = np.ma.log10(avg).filled(-1)
-cut = np.where(log10_avg[1] == -1)[0][0]
-log10_avg = log10_avg[:,:cut]
+log10_avg_hist = np.ma.log10(avg_hist).filled(-1)
+cut = np.where(log10_avg_hist[1] == -1)[0][0]
+_hist = log10_avg_hist[:,:cut]
 
-axes[1].plot(log10_avg[0], log10_avg[1])
+# print(type(_hist))
+# print(_hist)
+# print(_hist[0,:].size)
 
-p = np.polynomial.Polynomial.fit(log10_avg[0], log10_avg[1], 1)
-print('\u03B1 = ', p.convert().coef[1]*-1)
+full_domain = scale[-1]
+print(full_domain)
+p = 0.6
+num_domains = 11
+domains = []
+for i in range(num_domains):
+    a_dom = int(10**((1-i*((1-p)/num_domains))*np.log10(full_domain)))
+    domains.append([np.log10(x) for x in range(1, a_dom)])
+_hists = []
+for dom in domains:
+    length = len(dom)
+    print(f'{length}...', end='', flush=True)
+    temp_hist = _hist[:,:length]
+    # temp_hist[0,:] = dom
+    _hists.append(temp_hist)
 
-xs = np.linspace(log10_avg[0][0], log10_avg[0][-1], 2)
-axes[1].plot(xs, [p(x) for x in xs], linestyle='dashed')
+# print(_hists)
+
+exps = []
+for i, a_hist in enumerate(_hists):
+    axes[1].plot(a_hist[0], a_hist[1])
+
+    p = np.polynomial.Polynomial.fit(a_hist[0], a_hist[1], 1)
+    exps.append(exp:=p.convert().coef[1]*-1)
+    print('\u03B1', f'{i+1:02d}', ' = ', exp)
+
+    xs = np.linspace(a_hist[0][0], a_hist[0][-1], 2)
+    axes[1].plot(xs, [p(x) for x in xs], '--r')
+
+domain_maxes = [domains[j][-1] for j in range(len(domains))]
+axes[2].plot(domain_maxes, exps, 'o-g')
 
 mplp.show()
 
 # for fig in figures:
 #     fig.artist()
-print('\nFINISHED\n') 
-# !!! Compile many temp files into fewer temp files!
-# * check output/011
+print('\nFINISHED\n')
+# * results do not include gif frames for speed purposes
