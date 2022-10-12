@@ -259,6 +259,7 @@ class CellularAutomaton():
             self.state += 1
         end_stable = time.process_time()
         self.comp_time = {'transient':end_transient-start_time, 'stable':end_stable-end_transient}
+        print('\n~finished a machine~\n\n')
         return results
             
 
