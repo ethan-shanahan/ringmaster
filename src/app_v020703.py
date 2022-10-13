@@ -62,13 +62,15 @@ print( "\n",
        "\n",
       sep='\n')
 
+project_loc = os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
 x = 1
 while True:
     try:
-        os.mkdir(output_directory:=r'output/'+f'{x:03d}'+r'/')
+        os.mkdir(output_directory:=f'{project_loc}'+'\\output\\'+f'{x:03d}')
         print(f'\nOutputting to:\t\t\t{output_directory}\n')
         break
     except:
+        # print(f'{output_directory} already exists...')
         x += 1
 
 # figures = [vis.Visualiser(results['stable_1']['data'], f'{output_directory}stable_1_data.png', 'graphs'),
@@ -140,9 +142,8 @@ _hist = log10_avg_hist[:,:cut]
 # print(_hist[0,:].size)
 
 full_domain = scale[-1]
-print(full_domain)
-p = 0.6
-num_domains = 11
+p = 0.5
+num_domains = 51
 domains = []
 for i in range(num_domains):
     a_dom = int(10**((1-i*((1-p)/num_domains))*np.log10(full_domain)))
@@ -150,7 +151,6 @@ for i in range(num_domains):
 _hists = []
 for dom in domains:
     length = len(dom)
-    print(f'{length}...', end='', flush=True)
     temp_hist = _hist[:,:length]
     # temp_hist[0,:] = dom
     _hists.append(temp_hist)
