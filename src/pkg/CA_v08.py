@@ -4,6 +4,7 @@ import io
 import sys
 import time
 import itertools as itt
+from tkinter import N
 import zipfile
 import numpy as np
 import pandas as pd
@@ -13,16 +14,33 @@ import pandas as pd
 
 class CellularAutomaton():
     '''foo bar'''
-
-    def __init__(self,
-                 dimensions: tuple,
-                 boundary_condition: str,
-                 initial_condition: str,
-                 update_rule: str,
-                 perturbation_scheme: str,
-                 activity: str) -> None:
+    __acceptable_keys = [
+        'desired_stable_states',
+        'dimensions',
+        'boundary_condition',
+        'initial_condition',
+        'update_rule',
+        'perturbation_scheme',
+        'activity'
+    ]
+    def __init__(
+                self,
+                *,
+                desired_stable_states: int = None,
+                dimensions: tuple = None,
+                boundary_condition: str = None,
+                initial_condition: str = None,
+                update_rule: str = None,
+                perturbation_scheme: str = None,
+                activity: str = None,
+                **kwargs
+            ) -> None:
+        for k in kwargs.keys():
+            if k in self.__acceptable_keys:
+                self.__setattr__(k, kwargs[k])
         self.seed = time.time_ns() # object initialisation time in nanoseconds since epoch
         self.rng = np.random.default_rng(self.seed)
+        self.desired_stable_states = desired_stable_states
         self.dim, self.ndim = dimensions, len(dimensions)
         self.bc = getattr(self, f"boundary_{boundary_condition}")
         self.ic = getattr(self, f"initial_{initial_condition}")
@@ -182,10 +200,10 @@ class CellularAutomaton():
         with zipfile.ZipFile(temp_file, 'a') as temp:
             temp.writestr(f'state{self.state}_frame{self.time}.npy', data=bio.getbuffer().tobytes())
     
-    def run(self, desired_stable_states: int) -> dict:
+    def run(self) -> dict:
         start_time = time.process_time()
         results = {}
-        while self.state <= desired_stable_states:
+        while self.state <= self.desired_stable_states:
             self.log()
             if self.state == 0:
                 pset = list(itt.product(*list(list(x 
