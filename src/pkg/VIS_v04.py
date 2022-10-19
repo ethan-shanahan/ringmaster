@@ -7,50 +7,64 @@ import matplotlib.animation as mpla
 class Visualiser():
     '''docstring'''
 
-    def __init__(self, data: pd.DataFrame | np.ndarray | list, output_path: str, dtype: str) -> None:
+    def __init__(
+            self, 
+            data: pd.DataFrame | np.ndarray | list, 
+            output_path: str, 
+            art_type: str, 
+            save: bool = True
+        ) -> None:
+        self.data, dtype = data, type(data).__name__.lower()
         self.path = output_path
-        self.data = data
-        self.dtype = dtype
-        if self.dtype == 'graphs':
-            self.fig, self.axes = mplp.subplots(1, len(self.data.columns))
-            self.artist = getattr(self, "gen_graphs")
-        elif self.dtype == 'image':
+        self.artist = getattr(self, f'gen_{art_type}_from_{dtype}')
+        if art_type == 'image':
             self.fig = mplp.figure(figsize=self.data.shape)
             self.ax = mplp.axes()
             self.artist = getattr(self, "gen_image")
-        elif self.dtype == 'movie':
+            self.fig.set_tight_layout(True) # !!!
+        elif art_type == 'movie':
             self.fig = mplp.figure(figsize=self.data[0].shape)
             self.ax = mplp.axes()
             self.artist = getattr(self, "gen_movie")
             self.nframes = len(self.data)
-        else:
-            raise TypeError(
-                f'Visualiser does not support {type(self.data)} data.')
-        self.fig.set_tight_layout(True)
+            self.fig.set_tight_layout(True) # !!!
+        elif art_type != 'graph':
+            raise TypeError(f'Visualiser does not support {art_type} outputs.')
+        self.save = save
 
-    def gen_graphs(self):
-        mplp.figure(self.fig)
-        for col, axe in zip(list(self.data.columns), self.axes):
-            axe.plot(col, data=self.data)  # TODO design graphs
-        mplp.savefig(self.path, dpi=300)
-
+    # * Graph Generators
+    def gen_graph_from_dataframe(self):
+        fig, axes = mplp.subplots(1, len(self.data.columns))
+        for col, axe in zip(list(self.data.columns), axes):
+            axe.plot(col, data=self.data)  # TODO design graph
+        if self.save: mplp.savefig(self.path, dpi=300)
+        else: fig.show()
+    
+    def gen_graph_from_ndarray(self):
+        fig, axe = mplp.subplots()
+        axe.plot(self.data[0], self.data[1])
+        if self.save: mplp.savefig(self.path, dpi=300)
+        else: fig.show()
+    
+    # * Image Generators
     def gen_image(self):
         mplp.figure(self.fig)
         self.ax.set_axis_off()
         self.ax.imshow(self.data, interpolation='none', cmap='gray')
-        mplp.savefig(self.path, dpi=300)
+        if self.save: mplp.savefig(self.path, dpi=300)
 
+    # * Movie Generators
     def gen_movie(self):
         mplp.figure(self.fig)
         self.ax.set_axis_off()
         animator = mpla.FuncAnimation(
             self.fig, self.gen_frame, frames=self.nframes, interval=200, blit=True)
         print(f'\nGenerating {self.nframes} Frames: ', end='')
-        animator.save(self.path, dpi=100, writer='pillow',
-                      progress_callback=lambda i, n: print(i, end='-', flush=True))
+        if self.save: animator.save(self.path, dpi=100, writer='pillow',
+                                    progress_callback=lambda i, n: print(i, end='-', flush=True))
 
     def gen_frame(self, i) -> list:
-        return [self.ax.imshow(self.data[i], interpolation='none', cmap='gray')] # pre map to remove fluctuations
+        return [self.ax.imshow(self.data[i], interpolation='none', cmap='gray')] # !pre-map to remove fluctuations
 
 
 if __name__ == '__main__':

@@ -4,10 +4,10 @@ import io
 import sys
 import time
 import itertools as itt
-from tkinter import N
 import zipfile
 import numpy as np
 import pandas as pd
+from pkg.utils import ProgressBar
 
 # TODO: ?
 
@@ -24,17 +24,17 @@ class CellularAutomaton():
         'activity'
     ]
     def __init__(
-                self,
-                *,
-                desired_stable_states: int = None,
-                dimensions: tuple = None,
-                boundary_condition: str = None,
-                initial_condition: str = None,
-                update_rule: str = None,
-                perturbation_scheme: str = None,
-                activity: str = None,
-                **kwargs
-            ) -> None:
+            self,
+            *,
+            desired_stable_states: int = None,
+            dimensions: tuple = None,
+            boundary_condition: str = None,
+            initial_condition: str = None,
+            update_rule: str = None,
+            perturbation_scheme: str = None,
+            activity: str = None,
+            **kwargs
+        ) -> None:
         for k in kwargs.keys():
             if k in self.__acceptable_keys:
                 self.__setattr__(k, kwargs[k])
@@ -97,6 +97,11 @@ class CellularAutomaton():
     def initial_max30min10(self) -> None:
         self.bc(initial_flag=True)
         self.pg = self.rng.integers(10, 30, size=self.dim, endpoint=True)
+        self.bc()
+    
+    def initial_max20min10(self) -> None:
+        self.bc(initial_flag=True)
+        self.pg = self.rng.integers(10, 20, size=self.dim, endpoint=True)
         self.bc()
 
     def initial_control(self) -> np.ndarray: # !
@@ -180,7 +185,7 @@ class CellularAutomaton():
 
 # COMPUTATIONS HENCEFORTH...
 
-    def log(self, clear=False) -> None:
+    def log(self, clear=False) -> None: # TODO rename to record, use log for a saved file of ex-terminal info
         if clear:
             self.mask = np.zeros_like(self.pg)
             self.time = 0
@@ -201,6 +206,7 @@ class CellularAutomaton():
             temp.writestr(f'state{self.state}_frame{self.time}.npy', data=bio.getbuffer().tobytes())
     
     def run(self) -> dict:
+        pbar = ProgressBar(self.desired_stable_states-1)
         start_time = time.process_time()
         results = {}
         while self.state <= self.desired_stable_states:
@@ -231,7 +237,6 @@ class CellularAutomaton():
                     self.time += 1
                     self.size, self.mass = self.mask.sum(), self.pg.sum()
                     self.log()
-                    if self.time % 100 == 0: print(self.time, end='...', flush=True)
                     
             if self.state == 0:
                 end_transient = time.process_time()
@@ -266,7 +271,7 @@ class CellularAutomaton():
                 #        "**********************************************************************************",
                 #       sep="\n")
                 # input('...')
-            self.data = pd.DataFrame(self.data, index=self.series, columns=['Energy', 'Size', 'Mass'])
+            self.data = pd.DataFrame(self.data, index=self.series, columns=['energy', 'size', 'mass'])
             results.update({'transient' if self.state == 0 
                       else f'stable_{self.state}':{'data':self.data.copy(), 
                                                    'grid':self.pg.copy(), 
@@ -275,6 +280,7 @@ class CellularAutomaton():
                                                    'masks':self.temp_dir.name + f'\\temp_masks.npz'}})
             self.log(clear=True)
             self.state += 1
+            pbar.update(self.state)
         end_stable = time.process_time()
         self.comp_time = {'transient':end_transient-start_time, 'stable':end_stable-end_transient}
         return results
