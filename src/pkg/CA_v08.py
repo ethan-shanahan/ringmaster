@@ -7,7 +7,7 @@ import itertools as itt
 import zipfile
 import numpy as np
 import pandas as pd
-from pkg.utils import ProgressBar
+from pkg import utils
 
 # TODO: ?
 
@@ -25,6 +25,7 @@ class CellularAutomaton():
     ]
     def __init__(
             self,
+            meta,
             *,
             desired_stable_states: int = None,
             dimensions: tuple = None,
@@ -38,6 +39,7 @@ class CellularAutomaton():
         for k in kwargs.keys():
             if k in self.__acceptable_keys:
                 self.__setattr__(k, kwargs[k])
+        self.s, self.samples = meta
         self.seed = time.time_ns() # object initialisation time in nanoseconds since epoch
         self.rng = np.random.default_rng(self.seed)
         self.desired_stable_states = desired_stable_states
@@ -151,7 +153,7 @@ class CellularAutomaton():
         if self.rule((np.unravel_index(self.pg.argmax(), self.dim)), checking=True):
             while self.rule(target := tuple(self.rng.integers(0, self.dim[n]) for n in range(self.ndim)), checking=True):
                 continue
-            print(f"Random Perturbation of Cell {target}")
+            # print(f"Random Perturbation of Cell {target}")
             self.pg[target] += 1  # the perturbation itself
             self.fg[target] += 1
             pset = [target]
@@ -175,7 +177,7 @@ class CellularAutomaton():
     def perturbation_control(self): # !
         target = tuple(int(self.dim[n]/2) if self.dim[n] % 2 ==
                        0 else int((self.dim[n]-1)/2) for n in range(self.ndim))
-        print(f"Controlled Perturbation of Cell {target}")
+        # print(f"Controlled Perturbation of Cell {target}")
         self.pg[target] += 1  # the perturbation itself
         self.fg[target] += 1
         pset = [target]
@@ -206,7 +208,7 @@ class CellularAutomaton():
             temp.writestr(f'state{self.state}_frame{self.time}.npy', data=bio.getbuffer().tobytes())
     
     def run(self) -> dict:
-        pbar = ProgressBar(self.desired_stable_states-1)
+        pbar = utils.ProgressBar(1, self.desired_stable_states, heading='seed', prefix=f'{self.seed} ', conclusion=f' {self.s+1}/{self.samples} samples computed ')
         start_time = time.process_time()
         results = {}
         while self.state <= self.desired_stable_states:
@@ -237,40 +239,13 @@ class CellularAutomaton():
                     self.time += 1
                     self.size, self.mass = self.mask.sum(), self.pg.sum()
                     self.log()
-                    
+                
             if self.state == 0:
                 end_transient = time.process_time()
-                # print( "**********************************************************************************",
-                #        "",
-                #       f"Seed:\n{self.seed}",
-                #        "",
-                #       f"Initial Transient Grid:\n{self.ig}",
-                #        "",
-                #       f"The duration of the transient state was {self.time}.",
-                #        "",
-                #       f"Initial Stable Grid:\n{self.pg}",
-                #        "",
-                #        "**********************************************************************************",
-                #       sep='\n')
-                # del self.ig
-                # input('...')
-            # else:
-                # print( "**********************************************************************************",
-                #        "",
-                #       f"Found stable state {self.state}.",
-                #        "",
-                #       f"Duration:{self.time}",
-                #       f"Energy:{self.energy}",
-                #       f"Size:{self.mask.sum()}",
-                #       f"Mass:{self.pg.sum()}", 
-                #        "\n",
-                #       f"Resultant Stable Grid:\n{self.pg}",
-                #        "\n",
-                #       f"Resultant Stable Mask:\n{self.mask}",
-                #        "",
-                #        "**********************************************************************************",
-                #       sep="\n")
-                # input('...')
+            
+            if self.state < self.desired_stable_states:
+                pbar.update(self.state)
+            
             self.data = pd.DataFrame(self.data, index=self.series, columns=['energy', 'size', 'mass'])
             results.update({'transient' if self.state == 0 
                       else f'stable_{self.state}':{'data':self.data.copy(), 
@@ -280,9 +255,11 @@ class CellularAutomaton():
                                                    'masks':self.temp_dir.name + f'\\temp_masks.npz'}})
             self.log(clear=True)
             self.state += 1
-            pbar.update(self.state)
         end_stable = time.process_time()
         self.comp_time = {'transient':end_transient-start_time, 'stable':end_stable-end_transient}
+        info = f'- approximately {round((self.comp_time["transient"]+self.comp_time["stable"]) * self.samples)} seconds remaining '
+        # print(info)
+        # pbar.update(self.state, info)
         return results
             
 

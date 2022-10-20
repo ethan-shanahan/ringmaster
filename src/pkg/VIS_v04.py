@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as mplp
 import matplotlib.animation as mpla
+from pkg import utils
 
 
 class Visualiser():
@@ -59,9 +60,9 @@ class Visualiser():
         self.ax.set_axis_off()
         animator = mpla.FuncAnimation(
             self.fig, self.gen_frame, frames=self.nframes, interval=200, blit=True)
-        print(f'\nGenerating {self.nframes} Frames: ', end='')
+        utils.dual_print(f'\nGenerating {self.nframes} Frames: ', end='')
         if self.save: animator.save(self.path, dpi=100, writer='pillow',
-                                    progress_callback=lambda i, n: print(i, end='-', flush=True))
+                                    progress_callback=lambda i, n: utils.dual_print(i, end='-', flush=True))
 
     def gen_frame(self, i) -> list:
         return [self.ax.imshow(self.data[i], interpolation='none', cmap='gray')] # !pre-map to remove fluctuations

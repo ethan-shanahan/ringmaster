@@ -1,23 +1,12 @@
 # vXX
 from pkg import CA_v08 as ca # vYY
 from pkg import VIS_v04 as vis # vZZ
-import os, configparser
+from pkg import utils
+import os, sys, configparser
 import numpy as np
+import time
 
 # TODO: make a class with methods various outputting procedures
-
-root = os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
-
-def mk_output_dir() -> str:
-    x = 1
-    while True:
-        try:
-            os.mkdir(output_dir:=root + '\output' + f'\{x:03d}')
-            print(f'\nOutputting to:\t\t\t{output_dir}\n')
-            break
-        except:
-            x += 1
-    return output_dir
 
 
 class MyParser(configparser.ConfigParser):
@@ -26,16 +15,17 @@ class MyParser(configparser.ConfigParser):
             converters={'tuple': lambda s: tuple(int(a) for a in s.split(','))},
             interpolation=configparser.ExtendedInterpolation()
         )
-        self.read(root + '\src\config.ini')
-        print('\nThe following presets were found:', *self.sections(), sep='    ', end='\n\n')
+        self.read(utils.get_root() + '\config.ini')
+        utils.dual_print('The following presets were found:', *self.sections(), sep='    ', end='\n\n')
         self.preset = input('Please enter the name of the preset you would like to use,'
                               ' or enter none to use the default settings.\t\t| ') or 'DEFAULT'
     
     def as_dict(self) -> dict:
         if self.preset == 'DEFAULT': d = self.defaults()
         else: d = dict.fromkeys(self.options(self.preset))
+        utils.dual_print(f'\nUsing {self.preset}:')
         for o in d:
-            print(o, ' = ', self[self.preset][o])
+            utils.dual_print('\t', o, ' = ', self[self.preset][o])
             if ',' in self[self.preset][o]:
                 d[o] = self[self.preset].gettuple(o)
             elif all(char.isnumeric() for char in self[self.preset][o]):
@@ -50,10 +40,10 @@ class Application():
         self.machines = {}
         for n in range(machine_count): # each machine should have different config requirements
             c = MyParser().as_dict()
-            print(f'{n+1}/{machine_count} configurations stored.\n')
+            utils.dual_print(f'{n+1}/{machine_count} configurations stored.\n')
             self.machines[f'm{n}'] = {f'config{n}': c}
             for s in range(c['samples']):
-                self.machines[f'm{n}'][f'auto{s}'] = ca.CellularAutomaton(**c)
+                self.machines[f'm{n}'][f'auto{s}'] = ca.CellularAutomaton((s, c['samples']), **c)
         self.total_transient_processing_time = 0
         self.total_stable_processing_time = 0
     
@@ -68,13 +58,13 @@ class Application():
                 transient_time += m[f'auto{s}'].comp_time['transient']
                 stable_time    += m[f'auto{s}'].comp_time['stable']
                 if predicted_duration == 0: predicted_duration = (m[f'auto{s}'].comp_time['transient'] + m[f'auto{s}'].comp_time['stable']) * samples
-                print(f'{s+1} of {samples} samples computed. ', end='', flush=True)
-                if s+1 != samples: print(f'Estimated time remaining: {predicted_duration-(transient_time + stable_time)}')
-                else: print()
+                utils.dual_print('*'*50 + f'{s+1} of {samples} samples computed', end='', flush=True)
+                if s+1 != samples: utils.dual_print(f', estimated time remaining: {round(predicted_duration-(transient_time + stable_time))}s' + '*'*50 + '\n')
+                else: utils.dual_print('*'*76 + '\n')
             predicted_duration = (transient_time + stable_time)*len(self.machines)
-            print(f'{n+1} of {len(self.machines)} machines executed. ', end='', flush=True)
-            if n+1 != len(self.machines): print(f'Estimated time remaining: {predicted_duration-(transient_time + stable_time)}')
-            else: print()
+            utils.dual_print(f'{n+1} of {len(self.machines)} machines executed', end='', flush=True)
+            if n+1 != len(self.machines): utils.dual_print(f', estimated time remaining: {round(predicted_duration-(transient_time + stable_time))}\n')
+            else: utils.dual_print('\n')
             self.total_transient_processing_time += transient_time
             self.total_stable_processing_time += stable_time
     
@@ -162,11 +152,18 @@ class Application():
     
 # ? include config section on output/data_manip options
 if __name__ == '__main__':
+    output_dir = utils.mk_output_dir()
+    log_path = output_dir+r'\log.txt'
+
+    # utils.UtilFileLike(log_path)
+    utils.u_open(log_path)
+
     distinct_machines = 1
     app = Application(machine_count=distinct_machines)
     app.execute()
-    data1 = app.data_extractor(0, 'size', 'stable', 'linear_histogram', 'perturbation_time_series')
-    data2 = app.data_extractor(0, 'size', 'stable', 'log_log_histogram', 'perturbation_time_series')
-    output_dir = mk_output_dir()
+    data1 = app.data_extractor(0, 'energy', 'stable', 'linear_histogram', 'perturbation_time_series')
+    data2 = app.data_extractor(0, 'energy', 'stable', 'log_log_histogram', 'perturbation_time_series')
     app.data_plotter(data1, output_dir+r'\fig1.png', 'graph', True)
     app.data_plotter(data2, output_dir+r'\fig2.png', 'graph', True)
+
+    utils.u_close()
