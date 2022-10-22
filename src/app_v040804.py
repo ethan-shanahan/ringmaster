@@ -112,7 +112,9 @@ class Manipulator():
         return events
 
 
-    def perturbation_time_series(self, data: dict) -> dict[str, list]: # !?!?! is averaging this series equivalent to averaging the many hists???
+    def perturbation_time_series(self, data: dict) -> dict[str, list]: 
+        # ? is averaging this series equivalent to averaging the many hists
+        # ! NO
         '''
         return dictionary of sample-list pairs,
         each list contains a series of data points extracted from the end of each perturbation
@@ -132,14 +134,46 @@ class Manipulator():
                 else:
                     d = m[f'results{self.machine_id}'][f'sample{s}'][state]['data'].iloc[-1][self.attribute]
                     pert[f'sample{s}'].append(d)
+        # print(pert['sample0'], '\n\n')
         return pert
     
+    def perturbation_time_series_averaged(self, data: dict) -> list:
+        m = data[f'm{self.machine_id}']
+        samples = m[f'config{self.machine_id}']['samples']
+        summation = 0
+        collection = []
+        for s in range(samples):
+            sample = []
+            for state in m[f'results{self.machine_id}'][f'sample{s}']:
+                if state == 'transient' and self.state_type == 'transient':
+                    d = m[f'results{self.machine_id}'][f'sample{s}'][state]['data'].iloc[-1][self.attribute]
+                    sample.append(d)
+                    break
+                elif state == 'transient' and self.state_type != 'transient':
+                    continue
+                else:
+                    d = m[f'results{self.machine_id}'][f'sample{s}'][state]['data'].iloc[-1][self.attribute]
+                    sample.append(d)
+            collection.append(sample)
+        max_domain = max([max(sample) for sample in collection])
+        summation = 0
+        for sample in collection:
+            size = len(sample)
+            if size < max_domain:
+                sample.append([0 for _ in range(max_domain - size)])
+            summation += np.array(sample)
+        perts = list(summation/len(collection))
+        print(perts)
+        # perts = [sum(x)/len(collection) for x in zip(*collection)]
+        return perts
+
     # * Histogram Manipulations
-    def linear_bins_histogram(self, data: dict[str, list]) -> np.ndarray:
+    def linear_bins_histogram_averaged(self, data: dict[str, list]) -> np.ndarray:
         f = lambda x: list(range(1, max(x)+2))
         domains = [max(series) for series in data.values()]
         summation, count = 0, 0
         for series in data.values():
+            series = series.copy()
             series.sort()
             hist_tuple_temp = np.histogram(series, bins=f(series))
             hist_tuple_temp = (hist_tuple_temp[1][:-1], hist_tuple_temp[0])
@@ -153,17 +187,59 @@ class Manipulator():
         linear_histogram = summation/count
         linear_histogram[0] = scale
         return linear_histogram
-    
-    def log_bins_histogram(self, data):
-        f = lambda x: []
-        domains = [max(series) for series in data.values()]
-        summation, count = 0, 0
-        for series in data.values():
-            series.sort()
-        pass
 
-    def log_log_histogram(self, data: dict):
-        linear_histogram = self.linear_bins_histogram(data)
+    def linear_bins_histograms(self, data: dict[str, list]) -> list[np.ndarray]:
+        f = lambda x: list(range(1, max(x)+2))
+        domains = [max(series) for series in data.values()]
+        linbin_histlist = []
+        for series in data.values():
+            series = series.copy()
+            series.sort()
+            hist_tuple_temp = np.histogram(series, bins=f(series))
+            hist_tuple_temp = (hist_tuple_temp[1][:-1], hist_tuple_temp[0])
+            hist_array_temp = np.array(hist_tuple_temp)
+            if (padding:=max(domains) - max(series)) == 0:
+                scale = hist_array_temp[0]
+            else:
+                hist_array_temp = np.pad(hist_array_temp, ((0,0),(0,padding)))
+            linbin_histlist.append(hist_array_temp)
+        for hist in linbin_histlist:
+            hist[0] = scale
+        return linbin_histlist
+    
+    def log_bins_histograms(self, data: dict[str, list]) -> list[np.ndarray]:
+        base = 2
+        # f = lambda x: [(max(x)*((1-base)/(1-(base**N))))*(base**n) for n in range(N)]
+        f = lambda x: np.logspace(start=np.emath.logn(base, x[0]), stop=np.emath.logn(base, x[-1]), num=N, base=base)
+        linbin_histlist = []
+        for series in data.values():
+            series = series.copy()
+            series.sort()
+            N = int(np.emath.logn(base, 1-max(series)*(base-1)*(1-base)))
+            print('0 - ', series[0], '| -1 - ', series[-1])
+            print(f(series), '\n')
+            hist_tuple_temp = np.histogram(series, bins=f(series))
+            hist_tuple_temp = (hist_tuple_temp[1][:-1], hist_tuple_temp[0])
+            hist_array_temp = np.array(hist_tuple_temp)
+            linbin_histlist.append(hist_array_temp)
+        domain_lengths = [len(hist[0]) for hist in linbin_histlist]
+        for hist in linbin_histlist:
+            if (padding:=max(domain_lengths) - len(hist[0])) == 0:
+                max_domain = max(hist[0])
+                break
+        for n, hist in enumerate(linbin_histlist):
+            if (padding:=max(domain_lengths) - len(hist[0])) != 0:
+                print(max(domain_lengths), '-', len(hist[0]), '=', padding)
+                filler = np.zeros((2,padding), dtype=np.int8)
+                filler[0] = np.linspace(max(hist[0]), max_domain, padding)
+                linbin_histlist[n] = np.concatenate(hist, filler, axis=1)
+        # for hist in linbin_histlist:
+        #     hist[0] = scale
+        return linbin_histlist
+
+    def log_log_histogram(self, data: dict[str, list]) -> np.ndarray:
+        linear_histogram = self.linear_bins_histograms(data)
+        linear_histogram = self.average_histogram(linear_histogram)
         log_log_histogram = np.ma.log10(linear_histogram).filled(-1)
         try:
             clean_domain = np.where(log_log_histogram[1] == -1)[0][0]
@@ -172,6 +248,14 @@ class Manipulator():
         log_log_histogram = log_log_histogram[:,:clean_domain]
         return log_log_histogram
 
+    def average_histogram(self, data: list[np.ndarray]) -> np.ndarray:
+        summation, count = 0, 0
+        for h in data:
+            summation += h
+            count += 1
+        avg_hist = summation/count
+        return avg_hist
+    
     # * Domain Manipulations
     def linear_domains():
         pass
@@ -225,13 +309,32 @@ if __name__ == '__main__':
 
     stable_size_m0_data =  Manipulator(app.machines, 0, 'size', 'stable')
 
-    data0 = stable_size_m0_data.data_extractor('event_time_series')
+    # data0 = stable_size_m0_data.data_extractor('event_time_series')
+    # data1 = stable_size_m0_data.data_extractor('perturbation_time_series')
+    # data2 = stable_size_m0_data.data_extractor('linear_bins_histogram', data=data1)
+    # data3 = stable_size_m0_data.data_extractor('log_log_histogram', data=data1)
+    # data4 = stable_size_m0_data.data_extractor('log_domains', data=data3)
+    # data5 = stable_size_m0_data.data_extractor('poly1_fit_many', data=data4)
+    # data6 = stable_size_m0_data.data_extractor('poly1_fit_trend', data=data4)
+
+    # app.data_plotter(data0, output_path=output_dir+r'\size_fig0.png', art_type='graph', save=True)
+    # app.data_plotter(data1, output_path=output_dir+r'\size_fig1.png', art_type='graph', save=True)
+    # app.data_plotter(data2, output_path=output_dir+r'\size_fig2.png', art_type='graph', save=True)
+    # app.data_plotter(data3, output_path=output_dir+r'\size_fig3.png', art_type='graph', save=True)
+    # app.data_plotter(data4, output_path=output_dir+r'\size_fig4.png', art_type='graph', save=True)
+    # app.data_plotter(data5, output_path=output_dir+r'\size_fig5.png', art_type='graph', save=True)
+    # app.data_plotter([data3, data5], output_path=output_dir+r'\size_fig6.png', art_type='graph', save=True)
+    # app.data_plotter(data6, output_path=output_dir+r'\size_fig7.png', art_type='graph', save=True)
+
     data1 = stable_size_m0_data.data_extractor('perturbation_time_series')
-    data2 = stable_size_m0_data.data_extractor('linear_bins_histogram', data=data1)
-    data3 = stable_size_m0_data.data_extractor('log_log_histogram', data=data1)
-    data4 = stable_size_m0_data.data_extractor('log_domains', data=data3)
-    data5 = stable_size_m0_data.data_extractor('poly1_fit_many', data=data4)
-    data6 = stable_size_m0_data.data_extractor('poly1_fit_trend', data=data4)
+    data2 = stable_size_m0_data.data_extractor('linear_bins_histograms', 'average_histogram', data=data1)
+    data3 = stable_size_m0_data.data_extractor('log_bins_histograms', data=data1)
+    data4 = stable_size_m0_data.data_extractor('average_histogram', data=data3)
+    data5 = stable_size_m0_data.data_extractor('log_log_histogram', data=data1)
+    data0 = {}
+    for k, v in data1.items():
+        data0[k] = v.copy()
+        data0[k].sort()
 
     app.data_plotter(data0, output_path=output_dir+r'\size_fig0.png', art_type='graph', save=True)
     app.data_plotter(data1, output_path=output_dir+r'\size_fig1.png', art_type='graph', save=True)
@@ -239,7 +342,5 @@ if __name__ == '__main__':
     app.data_plotter(data3, output_path=output_dir+r'\size_fig3.png', art_type='graph', save=True)
     app.data_plotter(data4, output_path=output_dir+r'\size_fig4.png', art_type='graph', save=True)
     app.data_plotter(data5, output_path=output_dir+r'\size_fig5.png', art_type='graph', save=True)
-    app.data_plotter([data3, data5], output_path=output_dir+r'\size_fig6.png', art_type='graph', save=True)
-    app.data_plotter(data6, output_path=output_dir+r'\size_fig7.png', art_type='graph', save=True)
 
     utils.u_close()

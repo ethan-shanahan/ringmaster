@@ -53,8 +53,12 @@ class Visualiser():
             if isinstance(d, list):
                 for dd in d:
                     axe.plot(dd[0], dd[1])
-            else:
+            elif isinstance(d, np.ndarray):
                 axe.plot(d[0], d[1])
+            else:
+                axe.plot(self.data)
+                break
+        
         if self.save: mplp.savefig(self.path, dpi=300)
         else: fig.show()
 
@@ -68,7 +72,13 @@ class Visualiser():
             rows, cols = len(self.data), 1
         fig, axes = mplp.subplots(nrows=rows, ncols=cols)
         for n, d in enumerate(self.data.values()):
-            axes.flatten()[n].plot(d[0], d[1])
+            if isinstance(d, list):
+                axes.flatten()[n].plot(d)
+            elif isinstance(d, np.ndarray):
+                axes.flatten()[n].plot(d[0], d[1])
+            else:
+                print('graphing not supported')
+                break
         if self.save: mplp.savefig(self.path, dpi=300)
         else: fig.show()
     
