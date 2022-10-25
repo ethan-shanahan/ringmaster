@@ -67,10 +67,10 @@ def dual_print(*values: object, sep: str | None = ' ', end: str | None = '\n', f
 def mk_output_dir() -> str:
     x = 1
     while True:
-        output_dir = get_root().replace('\src', '')+f'\output\{x:03d}'
+        output_dir = get_root().replace('\src', f'\output\{x:03d}')
         try:
             # print(x, end='-', flush=True)
-            time.sleep(0.1)
+            # time.sleep(0.1)
             os.mkdir(output_dir)
             # print('success')
             break
