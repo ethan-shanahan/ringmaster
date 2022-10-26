@@ -48,6 +48,7 @@ mplp.figure()
 
 mplp.subplot(231)
 mplp.plot('sizes', 'freq', data=proper_histofreq)
+mplp.title('freq/size')
 # mplp.plot(norm_pert_series)
 
 mplp.subplot(232)
@@ -59,8 +60,8 @@ mplp.subplot(233)
 mplp.subplot(234)
 mplp.plot('sizes', 'freq', data=proper_histofreq)
 # mplp.plot(np.log10(proper_histofreq.sizes), np.log10(proper_histofreq.freq))
-# mplp.yscale('log')
-# mplp.xscale('log')
+mplp.yscale('log')
+mplp.xscale('log')
 
 mplp.subplot(235)
 mplp.plot('sizes', 'norm', 'r.', data=new_normed)
