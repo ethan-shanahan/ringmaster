@@ -21,6 +21,7 @@ def ax_getter(i=(0,0)):
 eg_hist = np.load('test\data\eg_histograms.npz')
 pert_series = np.core.records.fromrecords(eg_hist['perturbation_time_series'], dtype=[('sizes','i4')])
 eg_logloghist = np.core.records.fromarrays(eg_hist['log_log_histogram'], dtype=[('sizes',np.float64),('freq',np.float64)])
+eg_hist = np.core.records.fromarrays(eg_hist['linear_bins_histogram_avg'], dtype=[('sizes',np.float64),('freq',np.float64)])
 
 x = np.arange(1, 101)
 logx = np.log10(x/max(x))
@@ -65,7 +66,7 @@ def log_plot_hist_fit(A):
     A.plot(np.log10(hist_proper.bins), np.log10(hist_proper.freq), label='size vs. freq')
     params, pcovs = curve_fit(mk_correlation, hist_proper.bins, hist_proper.freq, p0=(1000,1,1))
     A.plot(np.log10(hist_proper.bins), np.log10(mk_correlation(hist_proper.bins, *params)), label=f'fit: C={params[0]}, a={params[1]}, l={params[2]}')
-    A.legend(); A.set_title('Data and Fitting'); mimic_log(A)
+    A.legend(); A.set_title('log-log: Data and Fitting'); mimic_log(A)
 def log_plot_norm_hist_fit(A):
     f = lambda x: np.linspace(0, max(x), max(x))
     hist, bin_edges = np.histogram(pert_series.sizes, bins=f(pert_series.sizes))
@@ -80,9 +81,42 @@ def log_plot_norm_hist_fit(A):
 
     x = np.log10(hist_proper.bins / max(hist_proper.bins))
     y = np.log10(mk_correlation(hist_proper.bins, *params) / max(mk_correlation(hist_proper.bins, *params)))
-    A.plot(x, y, label=f'fit: C={params[0]}, a={params[1]}, w={params[2]}')
+    A.plot(x, y, label=f'fit: C={params[0]}, a={params[1]}, l={params[2]}')
     
-    A.legend(); A.set_title('Data and Fitting'); mimic_log(A)
+    A.legend(); A.set_title('log-log: Normalised Data and Fitting'); mimic_log(A)
+
+def linear_bins_histogram_avg_fit(A):
+    # x = np.ma.log10(eg_hist.sizes / max(eg_hist.sizes)).filled(-1)
+    # y = np.ma.log10(eg_hist.freq / max(eg_hist.freq)).filled(-1)
+    # xy = np.array((x,y))
+    # try:
+    #     clean_domain = np.where(xy[1] == -1)[0][0]
+    # except IndexError:
+    #     clean_domain = None
+    # xy = xy[:,:clean_domain]
+    # A.plot(xy[0], xy[1], label='size vs. freq')
+
+    clean = np.where(eg_hist.freq == 0)[0][0]
+    hist = np.array((eg_hist.sizes / max(eg_hist.sizes), eg_hist.freq / max(eg_hist.freq)))[:,:clean]
+    x = np.log10(hist[0])
+    y = np.log10(hist[1])
+    A.plot(x, y, label='size vs. freq 2')
+    params, pcovs = curve_fit(mk_correlation, hist[0], hist[1], p0=(1,1,1))
+    x = np.log10(hist[0])
+    y = np.log10(mk_correlation(hist[0], *params))
+    A.plot(x, y, label=f'fit: C={params[0]},\na={params[1]},\nl={params[2]}')
+
+    # x = np.log10(eg_hist.sizes / max(eg_hist.sizes))
+    # y = np.log10(eg_hist.freq / max(eg_hist.freq))
+    # A.plot(x, y, label='size vs. freq')
+
+    # params, pcovs = curve_fit(mk_correlation, eg_hist.sizes, eg_hist.freq, p0=(1,1,1))
+
+    # x = np.log10(eg_hist.sizes / max(eg_hist.sizes))
+    # y = np.log10(mk_correlation(eg_hist.sizes, *params) / max(mk_correlation(eg_hist.sizes, *params)))
+    # A.plot(x, y, label=f'fit: C={params[0]}, a={params[1]}, l={params[2]}')
+    
+    A.set_title('log-log: Normalised Data and Fitting'); mimic_log(A); A.legend()
 
 def set_scale_sequence(i):
     C=1; a=1; L=25; w=0.5; g=1
@@ -205,9 +239,14 @@ def log_bin_hist_norm(A):
 # plot_hist_fit(A['0,0'])
 # log_plot_norm_hist_fit(A['0,1'])
 
-fig, axes = mplp.subplots(1,2)
-A = ax_getter([(0,0),(0,1)])
-log_log_hist_norm(A['0,0'])
-log_bin_hist_norm(A['0,1'])
+# fig, axes = mplp.subplots(1,2)
+# A = ax_getter([(0,0),(0,1)])
+# log_log_hist_norm(A['0,0'])
+# log_bin_hist_norm(A['0,1'])
 
+fig, axes = mplp.subplots(1,1)
+A = axes
+linear_bins_histogram_avg_fit(A)
+
+mplp.savefig(r'D:\GitHub\ringmaster\output\006\log_log_histogram_exp-fit.png', dpi=300)
 mplp.show()
