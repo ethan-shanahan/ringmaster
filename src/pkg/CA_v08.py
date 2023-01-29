@@ -106,6 +106,11 @@ class CellularAutomaton():
         self.pg = self.rng.integers(10, 20, size=self.dim, endpoint=True)
         self.bc()
 
+    def initial_max1min0_float(self) -> None:
+        self.bc(initial_flag=True)
+        self.pg = self.rng.random(size=self.dim)
+        self.bc()
+
     def initial_control(self) -> np.ndarray: # !
         self.bc(initial_flag=True)
         seeded = np.random.default_rng(12345)
@@ -144,6 +149,41 @@ class CellularAutomaton():
                 for y in active_cells: self.mask[y] = 1
 
             return reactionary_cells
+
+        else:
+            return []
+        
+    def rule_OFC(self, cell:tuple) -> set[tuple]|list:
+        icell = dict(zip([i for i in range(self.ndim)], cell))
+        proactionary_cells = {tuple(icell[i] for i in icell)} # === {cell}
+        reactionary_cells = set(tuple(icell[i]+1 if n/2 == i 
+                                 else icell[i]-1 if n//2 == i 
+                                 else icell[i] 
+                                      for i in icell) 
+                                for n in range(self.ndim*2))
+        active_cells = proactionary_cells.union(reactionary_cells)
+
+        self.threshold = 1.0
+
+        if (present := self.pg[cell]) >= self.threshold:
+
+            for c in proactionary_cells:
+                self.fg[c] = 0
+            for c in reactionary_cells:
+                self.fg[c] += present/len(reactionary_cells)
+
+            if self.activity == 'proactionary':
+                self.energy += len(proactionary_cells)
+                for y in proactionary_cells: self.mask[y] += 1
+            elif self.activity == 'reactionary':
+                self.energy += len(reactionary_cells)
+                for y in reactionary_cells: self.mask[y] += 1
+            elif self.activity == 'all':
+                self.energy += 1 + len(active_cells)
+                for y in active_cells: self.mask[y] += 1
+
+            return reactionary_cells
+
         else:
             return []
 
@@ -171,6 +211,16 @@ class CellularAutomaton():
         self.pg[target] += 1  # the perturbation itself
         self.fg[target] += 1
         pset = [target]
+        area = len(pset)
+        return pset, area
+    
+    def perturbation_global_maximise(self) -> tuple[list[tuple],int]:
+        maximum = np.amax(self.pg)
+        self.pg += 1 - maximum
+        self.fg += 1 - maximum
+        pset = list(itt.product(*list(list(x 
+                                        for x in range(self.dim[n])) 
+                                    for n in range(self.ndim))))
         area = len(pset)
         return pset, area
 
