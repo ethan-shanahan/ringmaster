@@ -337,18 +337,19 @@ if __name__ == '__main__':
         data0[k].sort()
     data6 = data1['sample0']
     data7 = data0['sample0']
-
+    data8 = stable_size_m0_data.data_extractor('linear_bins_histograms', data=data1)[0]
     
     with open(r'D:\GitHub\ringmaster\test\data\eg_histograms.npz', 'wb') as quick_out:
-        np.savez(quick_out, perturbation_time_series=data6, perturbation_time_series_sorted=data7, linear_bins_histogram=data2, log_log_histogram=data5)
+        np.savez(quick_out, perturbation_time_series=data6, perturbation_time_series_sorted=data7, linear_bins_histogram_avg=data2, linear_bins_histogram=data8, log_log_histogram=data5)
 
-    app.data_plotter(data0, output_path=output_dir+r'\size_fig0.png', art_type='graph', save=True)
-    app.data_plotter(data1, output_path=output_dir+r'\size_fig1.png', art_type='graph', save=True)
-    app.data_plotter(data2, output_path=output_dir+r'\size_fig2.png', art_type='graph', save=True)
-    app.data_plotter(data3, output_path=output_dir+r'\size_fig3.png', art_type='graph', save=True)
-    app.data_plotter(data4, output_path=output_dir+r'\size_fig4.png', art_type='graph', save=True)
-    app.data_plotter(data5, output_path=output_dir+r'\size_fig5.png', art_type='graph', save=True)
-    app.data_plotter(data6, output_path=output_dir+r'\size_fig6.png', art_type='graph', save=True)
-    app.data_plotter(data7, output_path=output_dir+r'\size_fig7.png', art_type='graph', save=True)
+    app.data_plotter(data0, output_path=output_dir+r'\perturbation_time_series_sizes_sorted.png', art_type='graph', save=True)
+    app.data_plotter(data1, output_path=output_dir+r'\perturbation_time_series_sizes.png', art_type='graph', save=True)
+    app.data_plotter(data2, output_path=output_dir+r'\linear_bins_histogram_average.png', art_type='graph', save=True)
+    app.data_plotter(data3, output_path=output_dir+r'\log_bins_histograms.png', art_type='graph', save=True)
+    app.data_plotter(data4, output_path=output_dir+r'\log_bins_histogram_average.png', art_type='graph', save=True)
+    app.data_plotter(data5, output_path=output_dir+r'\log_log_histogram.png', art_type='graph', save=True)
+    app.data_plotter(data6, output_path=output_dir+r'\perturbation_time_series_sizes_sample0.png', art_type='graph', save=True)
+    app.data_plotter(data7, output_path=output_dir+r'\perturbation_time_series_sizes_sorted_sample0.png', art_type='graph', save=True)
+    app.data_plotter(data8, output_path=output_dir+r'\linear_bins_histogram_sample0.png', art_type='graph', save=True)
 
     utils.u_close()
