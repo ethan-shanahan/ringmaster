@@ -42,13 +42,13 @@ class Visualiser():
         else: fig.show()
     
     def gen_graph_from_ndarray(self):
-        fig, axe = mplp.subplots()
-        axe.plot(self.data[0], self.data[1])
+        fig, axe = mplp.subplots(figsize=(6,4))
+        axe.plot(self.data[0], self.data[1], 'k')
         if self.save: mplp.savefig(self.path, dpi=300)
         else: fig.show()
     
     def gen_graph_from_list(self):
-        fig, axe = mplp.subplots()
+        fig, axe = mplp.subplots(figsize=(6,4))
         for d in self.data:
             if isinstance(d, list):
                 for dd in d:
@@ -56,7 +56,8 @@ class Visualiser():
             elif isinstance(d, np.ndarray):
                 axe.plot(d[0], d[1])
             else:
-                axe.plot(self.data)
+                axe.plot(self.data, 'k')
+                axe.set_title('Sizes Time-series'); axe.set_xlabel('t'); axe.set_ylabel('S')
                 break
         
         if self.save: mplp.savefig(self.path, dpi=300)

@@ -100,11 +100,13 @@ def linear_bins_histogram_avg_fit(A):
     hist = np.array((eg_hist.sizes / max(eg_hist.sizes), eg_hist.freq / max(eg_hist.freq)))[:,:clean]
     x = np.log10(hist[0])
     y = np.log10(hist[1])
-    A.plot(x, y, label='size vs. freq 2')
-    params, pcovs = curve_fit(mk_correlation, hist[0], hist[1], p0=(1,1,1))
+    A.plot(x, y, 'k', label='Size Time-series')
+    params, pcovs = curve_fit(mk_correlation, hist[0], hist[1], p0=(0,1,0.25))
     x = np.log10(hist[0])
     y = np.log10(mk_correlation(hist[0], *params))
-    A.plot(x, y, label=f'fit: C={params[0]},\na={params[1]},\nl={params[2]}')
+    A.plot(x, y, 'b--', label=f'Modified Power-law')
+
+    print(f'fit:\n\tC={params[0]}\n\ta={params[1]}\n\tl={params[2]}')
 
     # x = np.log10(eg_hist.sizes / max(eg_hist.sizes))
     # y = np.log10(eg_hist.freq / max(eg_hist.freq))
@@ -116,7 +118,7 @@ def linear_bins_histogram_avg_fit(A):
     # y = np.log10(mk_correlation(eg_hist.sizes, *params) / max(mk_correlation(eg_hist.sizes, *params)))
     # A.plot(x, y, label=f'fit: C={params[0]}, a={params[1]}, l={params[2]}')
     
-    A.set_title('log-log: Normalised Data and Fitting'); mimic_log(A); A.legend()
+    A.set_title('Normalised Sizes Distribution (log-log)'); mimic_log(A); A.legend(); A.set_xlabel('S'); A.set_ylabel('D(S)')
 
 def set_scale_sequence(i):
     C=1; a=1; L=25; w=0.5; g=1
@@ -244,9 +246,17 @@ def log_bin_hist_norm(A):
 # log_log_hist_norm(A['0,0'])
 # log_bin_hist_norm(A['0,1'])
 
-fig, axes = mplp.subplots(1,1)
+fig, axes = mplp.subplots(1,1, figsize=(6,4))
 A = axes
 linear_bins_histogram_avg_fit(A)
 
-mplp.savefig(r'D:\GitHub\ringmaster\output\006\log_log_histogram_exp-fit.png', dpi=300)
+mplp.savefig(r'D:\GitHub\ringmaster\output\017\log_log_histogram_exp-fit.png', dpi=300)
 mplp.show()
+
+
+# fig, axes = mplp.subplots(1,1, figsize=(16,9))
+# A = axes
+# linear_bins_histogram_avg_fit(A)
+
+# mplp.savefig(r'D:\GitHub\ringmaster\output\008\generic-time-series.png', dpi=300)
+# mplp.show()
