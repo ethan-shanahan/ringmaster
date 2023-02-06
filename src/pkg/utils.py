@@ -2,8 +2,7 @@ import os, sys
 import time, math
 
 def get_root():
-    root = os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
-    return root
+    return os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
 
 class ProgressBar():
     '''
@@ -60,23 +59,20 @@ class ProgressBar():
 
 
 def dual_print(*values: object, sep: str | None = ' ', end: str | None = '\n', file=None, flush=False):
-    if file is None: file = opened 
     print(*values, sep=sep, end=end, file=sys.stdout, flush=flush)
-    print(*values, sep=sep, end=end, file=file, flush=flush)
+    try:
+        if file is None: file = opened
+        print(*values, sep=sep, end=end, file=file, flush=flush)
+    except NameError: pass
 
 def mk_output_dir() -> str:
     x = 1
     while True:
         output_dir = get_root().replace('\src', f'\output\{x:03d}')
         try:
-            # print(x, end='-', flush=True)
-            # time.sleep(0.1)
             os.mkdir(output_dir)
-            # print('success')
             break
         except:
-            # print(output_dir)
-            # print('failure')
             x += 1
         if x == 50: raise Exception('too many folders')
     print(f'\nOutputting to:\t\t{output_dir}\n')
@@ -91,6 +87,7 @@ class UtilFileLike():
         return self
     def __exit__(self, type, value, traceback):
         self.file.close()
+
 
 def u_open(path):
     global opened
@@ -112,3 +109,7 @@ def trunc(number, decimals=0):
 
     factor = 10.0 ** decimals
     return math.trunc(number * factor) / factor
+
+
+if __name__ == '__main__':
+    print(get_root())
