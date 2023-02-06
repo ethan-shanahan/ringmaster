@@ -33,14 +33,19 @@ class MyParser(configparser.ConfigParser):
 
 class Machine():
     def __init__(self, config) -> None:
-        print(f'Machine Activated\n') # utils.dual_print
+        utils.dual_print(f'\nMachine Activated\n')
         self.config = config
-        self.autos = 1
-        for s in range(config['samples']):
-            self.machines[f'm'][f'auto{s}'] = ca.CellularAutomaton((s, c['samples']), **c)
+        self.autos = {}
+        for s in range(self.config['samples']):
+            self.autos[f'a{s}'] = ca.CellularAutomaton((s, config['samples']), **config)
         self.total_transient_processing_time = 0
         self.total_stable_processing_time = 0
+    
+        def execute(self): pass
+
 
 
 if __name__ == '__main__':
-    c = MyParser().as_dict()
+    c1 = MyParser().as_dict()
+    M1 = Machine(c1)
+    print(M1.autos['a1'].seed)
