@@ -1,5 +1,6 @@
 from pkg import CA_v08 as ca # vYY
-from pkg import VIS_v04 as vis # vZZ
+from pkg import DW_v01 as dw # v??
+from pkg import VI_v01 as vi # v??
 from pkg import utils
 import configparser
 import numpy as np
@@ -28,24 +29,44 @@ class MyParser(configparser.ConfigParser):
                 d[o] = self[self.preset].getint(o)
             else:
                 d[o] = self[self.preset].get(o)
+        utils.dual_print('\n')
         return d
 
 
 class Machine():
-    def __init__(self, config) -> None:
-        utils.dual_print(f'\nMachine Activated\n')
-        self.config = config
-        self.autos = {}
-        for s in range(self.config['samples']):
-            self.autos[f'a{s}'] = ca.CellularAutomaton((s, config['samples']), **config)
+    def __init__(self, m_id:str) -> None:
+        self.m_id = m_id
+        self.config = MyParser().as_dict()
+        self.autos = [ca.CellularAutomaton((s, self.config['samples']), **self.config) for s in range(self.config['samples'])]
+        self.results = []
         self.total_transient_processing_time = 0
         self.total_stable_processing_time = 0
+        utils.dual_print(f'Machine Activated\n')
     
-        def execute(self): pass
-
+    def execute(self):
+        utils.dual_print(f'Executing Machine: {self.m_id}\n')
+        self.results.extend([self.autos[i].run() for i in range(self.config['samples'])])
+    
+    def extract(self, attribute:str = 'size', state:str = 'stable', form:str = 'data') -> list:
+        '''
+        Return the perturbation time series.
+        The attribute of each complete avalanche is appended
+            to a sorted list.
+        '''
+        if state == 'stable' and form == 'data':
+            series = []
+            for r in self.results:
+                for s in range(1, 1+self.config['desired_stable_states']):
+                    series.append(r[f'stable_{s}']['data'].iloc[-1][attribute])
+            return sorted(series)
 
 
 if __name__ == '__main__':
-    c1 = MyParser().as_dict()
-    M1 = Machine(c1)
-    print(M1.autos['a1'].seed)
+    Ma = Machine('Ma')
+    Ma.execute()
+    series = Ma.extract(attribute='size')
+    # print(series)
+    Da = dw.DataWrangler(series)
+    hist = Da.linbin_hist()
+    Va = vi.VisualInterface(hist[0],hist[1])
+    Va.histogram()
