@@ -61,7 +61,7 @@ class Machine():
             return sorted(series)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # ! samples should be averaged, not concatenated. Concat is equivalent to running 1 simulation for extra long. The point of samples is to average results.
     new = True; save = True
 
     if new == True:
