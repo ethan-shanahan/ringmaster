@@ -62,11 +62,39 @@ class Machine():
 
 
 if __name__ == '__main__':
-    Ma = Machine('Ma')
-    Ma.execute()
-    series = Ma.extract(attribute='size')
-    # print(series)
+    new = True; save = True
+
+    if new == True:
+        Ma = Machine('Ma')
+        Ma.execute()
+        series = Ma.extract(attribute='size')
+    else:
+        with open(r'D:\GitHub\ringmaster\test\data\sample_series.txt', 'r') as quick_in:
+            series = list(map(int, quick_in.read().split(r',')))
+            print('Loaded series from storage...\n')
+    if save == True:
+        with open(r'D:\GitHub\ringmaster\test\data\sample_OFC_series.txt', 'w') as quick_out:
+            quick_out.write(r','.join(map(str,series)))
+
     Da = dw.DataWrangler(series)
-    hist = Da.linbin_hist()
-    Va = vi.VisualInterface(hist[0],hist[1])
-    Va.histogram()
+    linbin_hist = Da.linbin_hist(resolution=1000)
+    # logbin_hist = Da.logbin_hist()
+    Da.data = linbin_hist
+    mod_pow = Da.fitter_nonlinear('modified_power_law')
+
+    Va = vi.VisualInterface(grid_dim=(1,1))
+    Va.graph(mod_pow[0],  mod_pow[1],  scale='linear', loc=(0,0))
+
+    Va = vi.VisualInterface(grid_dim=(2,2))
+    Va.graph(linbin_hist[0], linbin_hist[1], scale='linear', loc=(0,0))
+    Va.graph(linbin_hist[0], linbin_hist[1], scale='log',    loc=(0,1))
+    Va.graph(mod_pow[0],  mod_pow[1],  scale='linear', loc=(1,0))
+    Va.graph(mod_pow[0],  mod_pow[1],  scale='log',    loc=(1,1))
+
+    # Va = vi.VisualInterface(grid_dim=(2,2))
+    # Va.graph(linbin_hist[0], linbin_hist[1], scale='linear', loc=(0,0))
+    # Va.graph(linbin_hist[0], linbin_hist[1], scale='log',    loc=(1,0))
+    # Va.graph(logbin_hist[0], logbin_hist[1], scale='linear', loc=(0,1))
+    # Va.graph(logbin_hist[0], logbin_hist[1], scale='log',    loc=(1,1))
+
+    Va.show()
