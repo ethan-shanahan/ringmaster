@@ -1,9 +1,9 @@
-from pkg import CA_v08 as ca # vYY
-from pkg import DW_v01 as dw # v??
-from pkg import VI_v01 as vi # v??
-from pkg import utils
+# Application - version 11
+from pkg import CA_v08 as ca # Cellular Automaton - version 08
+from pkg import DW_v01 as dw # Data Wrangler - version 01
+from pkg import VI_v11 as vi # Visual Interface - version 11
+from pkg import utils # Utilities
 import configparser
-import numpy as np
 
 
 class MyParser(configparser.ConfigParser):
