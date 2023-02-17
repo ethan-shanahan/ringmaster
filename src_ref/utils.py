@@ -112,6 +112,9 @@ def trunc(number, decimals=0):
 
 
 if __name__ == '__main__':
-    print(f'{get_root()=}')
-    t = get_root().replace('\src', f'\output\{1:03d}')
-    print(f'{t=}')
+    duration = 786
+    bar = ProgressBar(start=1, total=duration, bar_length=100, prefix='Machine A:')
+    time.sleep(1)
+    for i in range(duration):
+        bar.update(i)
+        time.sleep(0.01)
