@@ -32,9 +32,9 @@ def intlen(integer : int):
     return int(math.log10(integer))+1
 
 
-class Progress():
+class ProgressBar():
     '''A progress bar, but dirty.'''
-    def __init__(self, buffer : int = 20, header : str = '', footer : str = '', jobs : int = 1, steps : int = 100) -> None:
+    def __init__(self, buffer : int = 25, header : str = '', footer : str = '', jobs : int = 1, steps : int = 100) -> None:
         self.master_start = time.time()
         self.job_times = []
         self.buffer = buffer
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     print()
     jobs = 4
     duration = 500
-    P = Progress(buffer=20, header='head', footer='foot', jobs=jobs)
+    P = ProgressBar(buffer=20, header='head', footer='foot', jobs=jobs)
     for j in range(jobs):
         P.make_bar(duration)
         time.sleep(1)

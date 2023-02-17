@@ -2,7 +2,7 @@
 from pkg import CA_v08 as ca # Cellular Automaton - version 08
 from pkg import DW_v01 as dw # Data Wrangler - version 01
 from pkg import VI_v11 as vi # Visual Interface - version 11
-import utilities as u # Utilities
+import pkg.utilities as u # Utilities
 import configparser
 import matplotlib.pyplot as mplp
 
