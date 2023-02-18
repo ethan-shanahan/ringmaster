@@ -97,9 +97,10 @@ class ProgressBar():
             f'| {current_step:{self.steps_len}d}/{self.steps:<{self.steps_len}d} [{percent:3}%] ~{f"{m:02d}:{s:02d}":^9}~'
         )
         if current_step != self.steps:
-            if percent == 0: print(bar, end='\r')
+            # print(f'{current_step=}    ')
+            if current_step == 1: print(bar, end='\r')
             else:
-                if percent % 10 == 0:
+                if percent != 0 and percent % 10 == 0:
                     est_total = ((time.time()-self.start_time) * (100/percent) + self.init_time) * self.jobs
                     self.eta = est_total - sum(self.job_times) - (self.init_time+time.time()-self.start_time)
                     m, s = divmod(round(self.eta), 60)
