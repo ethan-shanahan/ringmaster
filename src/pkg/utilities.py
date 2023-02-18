@@ -1,4 +1,17 @@
-import os, sys, time, math
+import os, sys, time, math, tomllib
+
+def parse_config() -> dict:
+    with open(f'{get_src()}/config.toml', mode='rb') as toml:
+        config = tomllib.load(toml)
+    options = config.pop('DEFAULT')
+    print(f'\nThe following presets were found: {list(config.keys())}', sep=' - ', end='\n\n')
+    if preset := input('Please enter the name of the preset you would like to use,'
+                                ' or enter none to use the default settings.\t\t| '): options.update(config[preset])
+    else: preset = 'DEFAULT'
+    print(); uprint(f'Loading {preset}:')
+    for k, v in options.items(): uprint('', k, '=', v, sep='  ')
+    uprint()
+    return options
 
 def get_src() -> str:
     '''Determines the absolute path of the project's src folder.'''
@@ -22,19 +35,24 @@ def close_log() -> None:
     '''Closes the global log file.'''
     log.close()
 
-def uprint(*values: object, sep: str | None = ' ', end: str | None = '\n', file = None, flush : bool = False):
+def uprint(*values: object, sep: str | None = ' ', end: str | None = '\n', file = None, flush : bool = False) -> None:
     '''Prints to both the terminal and the log file.'''
     print(*values, sep=sep, end=end, file=sys.stdout, flush=flush)
     try: print(*values, sep=sep, end=end, file=log, flush=flush)
-    except NameError: print('WARNING: Trying to use uprint() without an opened log file.')
+    except NameError: pass  # print('WARNING: Trying to use uprint() without an opened log file.')
 
-def intlen(integer : int):
+def intlen(integer : int) -> int:
     return int(math.log10(integer))+1
+
+def dim_check(subject : tuple[int], dim : tuple[int], ndim : int) -> bool:
+    checker = []
+    for n in range(ndim): checker.append(-1 < subject[n] < dim[n])
+    return all(checker)
 
 
 class ProgressBar():
     '''A progress bar, but dirty.'''
-    def __init__(self, buffer : int = 25, header : str = '', footer : str = '', jobs : int = 1, steps : int = 100) -> None:
+    def __init__(self, header : str = '', footer : str = '', entity : str = '', buffer : int = 25, jobs : int = 1, steps : int = 100) -> None:
         self.master_start = time.time()
         self.job_times = []
         self.buffer = buffer
@@ -44,17 +62,17 @@ class ProgressBar():
         self.offset = 0
         self.steps_len = intlen(steps) if intlen(steps) > 3 else 4
         h = (
-            f'{header:^{self.buffer}}|'+
-            ' '*100+
-            f'|{"DONE/TODO":^{(self.steps_len*2)+3}}[   %] ~ elapsed ~  eta '
+            f'{entity:^{self.buffer}}'+
+            f'|{header:^100}|'+
+            f'{"DONE/TODO":^{(self.steps_len*2)+3}}[   %] ~ elapsed ~  eta '
         )
         uprint(h)
 
-    def make_bar(self, steps) -> None:
+    def make_bar(self, steps : int, prefix : str | int = '') -> None:
         self.start = True
         self.start_time = time.time()
         self.steps = steps
-        self.prefix = f'Sample {self.j}/{self.jobs}'
+        self.prefix = prefix
         bar = (
             f'{self.prefix:^{self.buffer}}|'+
             '·'*100+
@@ -86,27 +104,14 @@ class ProgressBar():
                     self.eta = est_total - sum(self.job_times) - (self.init_time+time.time()-self.start_time)
                     m, s = divmod(round(self.eta), 60)
                     bar += f'{f"{m:02d}:{s:02d}":^9}'
-                print(bar, end='\r')
+                if ((current_step / self.steps) * 100) % 1 == 0:
+                    print(bar, end='\r')
         else:
             self.job_times.append(self.init_time+time.time()-self.start_time)
-            uprint(bar, end='           \n')
+            uprint(bar, end='           \n\n')
             if self.j == self.jobs: print(self.footer)
             self.j += 1
 
 
-
-
-
 if __name__ == '__main__':
-    print()
-    jobs = 4
-    duration = 500
-    P = ProgressBar(buffer=20, header='head', footer='foot', jobs=jobs)
-    for j in range(jobs):
-        P.make_bar(duration)
-        time.sleep(1)
-        for i in range(duration):
-            P.bar_step(i)
-            time.sleep(0.01)
-    time.sleep(1)
-    print()
+    c = parse_config(path_to_config=r'src/')
