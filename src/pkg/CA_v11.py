@@ -26,13 +26,14 @@ class Series:
 
 class CellularAutomaton():
     '''Does exactly what it says on the tin.'''
-    __slots__ = ('progress_bar', 'output', 'stable_states', 'dim', 'ndim', 'ic', 'bc', 'pert', 'rule', 'activity', 'threshold', 'seed', 'rng', 'pg', 'fg', 'mask', 'data', 'series', 'tempdir')
+    __slots__ = ('progress_bar', 'output', 'stable_states', 'dim', 'ndim', 'ic', 'bc', 'pert', 'control', 'rule', 'activity', 'threshold', 'seed', 'rng', 'pg', 'fg', 'mask', 'data', 'series', 'tempdir')
     _options = {
         'desired_stable_states' : int,
         'dimensions'            : tuple,
         'initial_condition'     : str,
         'boundary_condition'    : str,
         'perturbation_scheme'   : str,
+        'control_scheme'        : str,
         'update_rule'           : str,
         'activity_setting'      : str
     }
@@ -52,10 +53,11 @@ class CellularAutomaton():
 
         self.stable_states = options['desired_stable_states']
         self.dim, self.ndim = tuple(options['dimensions']), len(options['dimensions'])
-        self.ic = getattr(self, f"initial_{options['initial_condition']}")
-        self.bc = getattr(self, f"boundary_{options['boundary_condition']}")
-        self.pert = getattr(self, f"perturbation_{options['perturbation_scheme']}")
-        self.rule = getattr(self, f"rule_{options['update_rule']}")
+        self.ic = getattr(self, f'initial_{options["initial_condition"]}')
+        self.bc = getattr(self, f'boundary_{options["boundary_condition"]}')
+        self.pert = getattr(self, f'perturbation_{options["perturbation_scheme"]}')
+        self.control = getattr(self, f'control_{options["control_scheme"]}')
+        self.rule = getattr(self, f'rule_{options["update_rule"]}')
         match options['activity_setting']:
             case 'proactionary' | 'reactionary' | 'total': self.activity = options['activity_setting']
             case _: raise ValueError('Activity must be set to "proactionary", "reactionary", or "total".')
@@ -76,10 +78,10 @@ class CellularAutomaton():
             'mass': 0
         }
         self.series = Series()
-        if output == 'all_arrays': self.tempdir = TD(dir='')
+        if 'array' in self.output: self.tempdir = TD(dir='')
 
-    def initial_float_0_1(self) -> None:
-        self.pg = self.rng.random(size=self.dim, dtype=np.float64)
+    def initial_rational_10_20(self) -> None:
+        self.pg = (20 - 10) * self.rng.random(size=self.dim, dtype=np.float64) + 10
         self.fg = self.pg.copy()
 
     def initial_integer_10_30(self) -> None:
@@ -89,14 +91,11 @@ class CellularAutomaton():
     def boundary_cliff(self, breach : tuple[int], magnitude : int | float, scope : set) -> None:
         scope.remove(breach); return scope
         
-    def perturbation_global_maximise(self) -> tuple[set[tuple[int]],int]:
+    def perturbation_global_maximise(self):
         magnitude = 1 - np.amax(self.pg)
+        self.data['pert_time'] += magnitude
         self.pg += magnitude
         self.fg += magnitude
-        search__set = set(map(tuple, np.transpose(np.nonzero(self.pg>=self.threshold))))
-        search_area = len(search__set)
-        self.data['pert_time'] += magnitude
-        return search__set, search_area
     
     def perturbation_random_1(self) -> tuple[set[tuple[int]],int]:
         magnitude = 0
@@ -111,10 +110,29 @@ class CellularAutomaton():
         self.data['pert_time'] += magnitude
         return search__set, search_area
 
+    def control_none(self, scale : str) -> None:
+        return
+
+    def control_perturbation_mass_gt_threshold_random_1_causal(self, scale : str) -> None:
+        if scale == 'perturbation':
+            if self.series.mass[-1] >= 0.62:  # conservative critical mass
+                x = 1.0
+                while len(causal := np.argwhere(self.pg >= self.threshold * (x := x - 0.1))) == 0: continue
+                target = tuple(causal[self.rng.integers(len(causal))])
+                self.pg[target] += 0.1
+                self.fg[target] += 0.1
+
+    def control_perturbation_mass_lt_threshold_random_1_true(self, scale : str) -> None:
+        if scale == 'perturbation':
+            if self.series.mass[-1] <= 0.54:  # non-conservative critical mass
+                target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
+                self.pg[target] += 1
+                self.fg[target] += 1
+        
     def rule_OFC(self, cell : tuple[int], set_threshold : bool = False) -> set[tuple[int]]:
         if set_threshold: self.threshold = 1; return
-        
         if self.pg[cell] >= self.threshold:
+            conservation = 0.8  # ? factor divided by 2 * ndim to determine dissipative effect
             index_cell = dict(zip([i for i in range(self.ndim)], cell))  # eg = {0: 6, 1: 9}
             proaction =  {tuple(index_cell[i] for i in index_cell)}
             reaction =   set(tuple(index_cell[i]+1 if n/2 == i 
@@ -125,7 +143,7 @@ class CellularAutomaton():
             
             for c in proaction: self.fg[c] = 0
             for c in copy(reaction):
-                if u.dim_check(c, self.dim, self.ndim): self.fg[c] += self.pg[cell]/len(reaction)
+                if u.dim_check(c, self.dim, self.ndim): self.fg[c] += self.pg[cell] * (conservation/len(reaction))
                 else: reaction = self.bc(breach=c, magnitude=self.pg[cell]/len(reaction), scope=reaction)
 
             match self.activity:
@@ -171,7 +189,9 @@ class CellularAutomaton():
                                                     for n in range(self.ndim))))
                 search_area = len(search_pset)
             else:
-                search_pset, search_area = self.pert()
+                self.pert(); self.control('perturbation')
+                search_pset = set(map(tuple, np.transpose(np.nonzero(self.pg>=self.threshold))))
+                search_area = len(search_pset)
                 self.progress_bar.bar_step(self.data['state'])
             search_fset = set()
             iter_pset = iter(search_pset)
@@ -198,7 +218,6 @@ class CellularAutomaton():
 
 
 if __name__ == "__main__":
-    np.set_printoptions(precision=3, linewidth=200)
     def test_CA_1():
         print()
         d = {

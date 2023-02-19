@@ -8,8 +8,8 @@ def parse_config() -> dict:
     if preset := input('Please enter the name of the preset you would like to use,'
                                 ' or enter none to use the default settings.\t\t| '): options.update(config[preset])
     else: preset = 'DEFAULT'
-    print(); uprint(f'Loading {preset}:')
-    for k, v in options.items(): uprint('', k, '=', v, sep='  ')
+    print(); uprint(indent := f'Loading {preset}:') ; indent = ' ' * len(indent)
+    for k, v in options.items(): uprint(f'{indent}{k:.<25}{v}')
     uprint()
     return options
 
@@ -56,7 +56,7 @@ class ProgressBar():
         self.master_start = time.time()
         self.job_times = []
         self.buffer = buffer
-        self.footer = '*'*self.buffer + f'*{" " + footer + " ":*^100}*' + '*'*35
+        self.footer = '*'*self.buffer + f'*{" " + footer + " ":*^100}*' + '*'*35 + '\n'
         self.jobs = jobs
         self.j = 1
         self.offset = 0
@@ -109,7 +109,7 @@ class ProgressBar():
                     print(bar, end='\r')
         else:
             self.job_times.append(self.init_time+time.time()-self.start_time)
-            uprint(bar, end='           \n\n')
+            uprint(bar, end='           \n')
             if self.j == self.jobs: print(self.footer)
             self.j += 1
 

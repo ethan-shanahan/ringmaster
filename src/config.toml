@@ -2,11 +2,16 @@
 samples = 4
 desired_stable_states = 5000
 dimensions = [25,25]
-initial_condition = "float_0_1"
+initial_condition = "rational_10_20"
 boundary_condition = "cliff"
 perturbation_scheme = "global_maximise"
+control_scheme = "none"
 update_rule = "OFC"
 activity_setting = "proactionary"
+
+[BRIEF]
+samples = 2
+desired_stable_states = 20
 
 [FAST]
 samples = 2
@@ -36,3 +41,6 @@ dimensions = [10,10,10]
 initial_condition = "integer_10_30"
 perturbation_scheme = "random_1"
 update_rule = "ABS"
+
+[CONTROL]
+control_scheme = "perturbation_mass_lt_threshold_random_1_true"
