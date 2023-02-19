@@ -1,6 +1,6 @@
-# Application - version 11
+# Application - version 12
 import pkg.utilities as u  # Utilities
-from pkg.CA_v11 import CellularAutomaton as CA  # Cellular Automaton - version 11
+from pkg.CA_v12 import CellularAutomaton as CA  # Cellular Automaton - version 12
 from pkg.DW_v02 import DataWrangler as DW  # Data Wrangler - version 02
 # from pkg import VI_v11 as vi  # Visual Interface - version 11
 import statistics as stat

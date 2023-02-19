@@ -251,7 +251,7 @@ if __name__ == "__main__":
         p = u.ProgressBar(header='CA Test', footer='Test Complete', jobs=samples, steps=d['desired_stable_states'])
         autos = [CellularAutomaton(p, 'normal', **d) for _ in range(samples)]
         for c in autos:
-            c.run()
+            c.run( )
             # print(f'\nSample {s+1}/{samples} : {c.series.pert_time=}\n')
         print()
     # print(f'{timeit(lambda: test_CA(), number=50)=}')
