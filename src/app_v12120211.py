@@ -22,9 +22,15 @@ class Machine():
             self.autos.append(ca)
 
     def extract_stable_perturbation_series(self, *data : str) -> list[dict]:
-        return [dict([(d, getattr(self.autos[s].series, d)) for d in data]) for s in range(self.samples)]
+        return [dict([(d, getattr(self.autos[s].series, d)[1:]) for d in data]) for s in range(self.samples)]
+
+    def generate_results(self, data : list[dict] = None, resolution : int = 0, model : str = None):
+        input('?')
+        pass
 
 
 if __name__ == '__main__':
     m = Machine(m_id='A', output='stable_perturbation_series')
-    data = m.extract('state', 'mass')
+    # data1 = m.extract('state', 'mass')
+    data2 = m.extract('pert_time', 'size')
+    print(data2)

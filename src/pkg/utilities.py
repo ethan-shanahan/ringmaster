@@ -68,7 +68,7 @@ class ProgressBar():
         )
         uprint(h)
 
-    def make_bar(self, steps : int, prefix : str | int = '') -> None:
+    def mk_bar(self, steps : int, prefix : str | int = '') -> None:
         self.start = True
         self.start_time = time.time()
         self.steps = steps

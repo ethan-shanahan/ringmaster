@@ -182,7 +182,7 @@ class CellularAutomaton():
         else: return set()
 
     def run(self):
-        self.progress_bar.make_bar(self.stable_states, prefix=self.seed)
+        self.progress_bar.mk_bar(self.stable_states, prefix=self.seed)
         while self.data['state'] <= self.stable_states:  # * START of perturbation time-step, ie. one state of the sample
             if self.data['state'] == 0:
                 search_pset = set(itt.product(*list(list(x for x in range(self.dim[n])) 
