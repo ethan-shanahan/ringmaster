@@ -4,42 +4,54 @@ from scipy.optimize import curve_fit
 
 class DataWrangler():
     def __init__(self, data : list[dict[str,list[int|float]]]) -> None:
-        match ((series := len(data[0])) > 1, (samples := len(data)) > 1):
+        match (len(data[0]) > 1, len(data) > 1):
             case (False, False) : self.data = next(iter(data[0].values())); self.wrangle = self.hist
             case (False, True)  : self.data = [next(iter(data[i].values())) for i in range(len(data))]; self.wrangle = self.avg_hist
             case (True,  False) : self.data = data[0]; self.wrangle = self.series
             case (True,  True)  : self.data = data; self.wrangle = self.avg_series
-        self.samples = samples; self.series = series
+        self.results : dict[str,np.ndarray] = {}
     
 
     @staticmethod
-    def binner(data : list[int|float], spec : int) -> np.ndarray[float]:
+    def binner(data : list[int|float] | np.ndarray, spec : int, mean_bins : bool = False) -> np.ndarray[float]:
         '''
         spec > 0 -> resolution\n
         spec = 0 -> fine grain\n
         spec < 0 -> log base * 10
         '''
+        if mean_bins:
+            geo_mean = lambda x: np.exp(np.log(x).mean())
+            if spec >= 0: return np.asarray([data[:-1],data[1:]]).mean(axis=0)
+            else: return np.asarray(list(map(geo_mean, zip(data[1:], data[:-1]))))
         log = lambda x, b: np.log(x) / np.log(b)
         if   spec  > 0: return np.linspace(min(data),max(data),spec+1)
-        elif spec == 0: return np.linspace(min(data),max(data),max(data)+1)
-        elif spec  < 0: return np.logspace(log(min(data),(-10*spec)),log(max(data),(-10*spec)),np.floor(log(max(data),(-10*spec))).astype(int),base=(-10*spec))
+        elif spec == 0: return np.linspace(min(data)-0.5,max(data)+0.5,max(data)+1)
+        elif spec  < 0: return np.logspace(log(min(data)-0.5,(-spec/10)),log(max(data)+0.5,(-spec/10)),1+np.floor(log(max(data),(-spec/10))).astype(int),base=(-spec/10))
         else: raise ValueError(f'Pardon?\t{spec=}')
 
-    @staticmethod
-    def mk_hist(data : list[int|float], bins : np.ndarray[float]) -> np.ndarray:
-        yhist, xhist = np.histogram(data, bins, density=True)
-        xhist = np.asarray([xhist[:-1],xhist[1:]]).mean(axis=0)
+    def mk_hist(self, data : list[int|float], bin_spec : int) -> np.ndarray:
+        yhist, xhist = np.histogram(data, self.binner(data, bin_spec), density=False)
+        # print(f'{[xhist,yhist]=}')
+        xhist = self.binner(xhist, bin_spec, mean_bins=True)
+        # print(f'{[xhist,yhist]=}')
         return np.asarray([xhist,yhist])
     
     def hist(self, bin_spec : int) -> np.ndarray:
-        return self.mk_hist(self.data, self.binner(self.data, bin_spec))
+        result = self.mk_hist(self.data, bin_spec)
+        result = result[:,~np.any(result == 0, axis=0)]
+        # print(f'{result=}')
+        self.results['hist'] = result
+        return result
 
     def avg_hist(self, bin_spec : int) -> np.ndarray:
         samples = []
         for d in self.data: samples.extend(d)
         hists = []
-        for d in self.data: hists.append(self.mk_hist(d, self.binner(samples, bin_spec)))
-        return np.dstack(hists).mean(axis=2)
+        for d in self.data: hists.append(self.mk_hist(d, bin_spec))
+        result = np.dstack(hists)[:,np.all(np.dstack(hists) != 0, axis=(0,2)),:].mean(axis=2)
+        # print(f'{result=}')
+        self.results['hist'] = result
+        return result
 
     def series(self) -> np.ndarray:
         pass
@@ -47,10 +59,14 @@ class DataWrangler():
     def avg_series(self) -> np.ndarray:
         pass
 
-    def fitter(self, data : np.ndarray, model : str) -> np.ndarray:
+    def fitter(self, model : str) -> np.ndarray:
+        data = next(iter(self.results.values()))
         model = getattr(self, model)
         params, _ = curve_fit(model, data[0], data[1])
-        return np.asarray([data[0], model(data[0], *params)])
+        result = np.asarray([data[0], model(data[0], *params)])
+        self.results['fit'] = result
+        print(*params)
+        return result
 
     @staticmethod
     def modified_power_law(x, a, l, C) -> np.float64:

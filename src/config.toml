@@ -10,8 +10,8 @@ update_rule = "OFC"
 activity_setting = "proactionary"
 
 [BRIEF]
-samples = 2
-desired_stable_states = 20
+samples = 1
+desired_stable_states = 100
 
 [FAST]
 samples = 2
@@ -37,10 +37,21 @@ dimensions = [50,50]
 [3D]
 dimensions = [10,10,10]
 
-[BTW]
+[BTW_DEFAULT]
+initial_condition = "integer_10_30"
+perturbation_scheme = "random_1"
+update_rule = "ABS"
+
+[BTW_SLOW]
+samples = 10
+desired_stable_states = 10000
+dimensions = [50,50]
 initial_condition = "integer_10_30"
 perturbation_scheme = "random_1"
 update_rule = "ABS"
 
 [CONTROL]
+samples = 1
+desired_stable_states = 100000
+dimensions = [50,50]
 control_scheme = "perturbation_mass_lt_threshold_random_1_true"

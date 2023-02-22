@@ -3,7 +3,7 @@ import pkg.utilities as u  # Utilities
 from pkg.CA_v12 import CellularAutomaton as CA  # Cellular Automaton - version 12
 from pkg.DW_v02 import DataWrangler as DW  # Data Wrangler - version 02
 # from pkg import VI_v11 as vi  # Visual Interface - version 11
-import statistics as stat
+from matplotlib import pyplot as mplp
 
 
 class Machine():
@@ -25,12 +25,50 @@ class Machine():
         return [dict([(d, getattr(self.autos[s].series, d)[1:]) for d in data]) for s in range(self.samples)]
 
     def generate_results(self, data : list[dict] = None, resolution : int = 0, model : str = None):
-        input('?')
-        pass
+        if data == None:
+            pass
+        elif model == None:
+            dw = DW(data); dw.wrangle(resolution)
+            return dw.results
+        else:
+            dw = DW(data); dw.wrangle(resolution); dw.fitter(model)
+            return dw.results
+    
+    def grapher(self, data : dict):
+        fig = mplp.figure(figsize=[8,6], layout='constrained')
+        ax = fig.add_subplot()
+        for k, v in data.items():
+            if k == 'fit': ax.plot(v[0], v[1], '.k', label=k)
+            if k == 'fit': ax.plot(v[0], v[1], 'r', label=k)
+            if k == 'no control': ax.plot(v[0], v[1], '.b', label=k)
+            if k == 'with control': ax.plot(v[0], v[1], '.r', label=k)
+        ax.grid(); ax.legend()
+        ax.set_xscale('log'); ax.set_xlabel('x')
+        ax.set_yscale('log'); ax.set_ylabel('Pr(x)')
+
 
 
 if __name__ == '__main__':
     m = Machine(m_id='A', output='stable_perturbation_series')
-    # data1 = m.extract('state', 'mass')
-    data2 = m.extract('pert_time', 'size')
-    print(data2)
+    data = m.extract('size')
+    # print(f'{data=}')
+    # results = m.generate_results(data, resolution=0, model='modified_power_law')
+    results1 = m.generate_results(data, resolution=0, model=None)#; m.grapher(results1)
+    results2 = m.generate_results(data, resolution=-20, model=None)#; m.grapher(results2)
+    # print(f'{results=}')
+
+    m = Machine(m_id='A', output='stable_perturbation_series')
+    data = m.extract('size')
+    results3 = m.generate_results(data, resolution=0, model=None)#; m.grapher(results3)
+    results4 = m.generate_results(data, resolution=-20, model=None)#; m.grapher(results4)
+
+    combi_lin = {
+        'no control': next(iter(results1.values())),
+        'with control': next(iter(results3.values()))
+    }; m.grapher(combi_lin)
+    combi_log = {
+        'no control': next(iter(results2.values())),
+        'with control': next(iter(results4.values()))
+    }; m.grapher(combi_log)
+    
+    mplp.show()
