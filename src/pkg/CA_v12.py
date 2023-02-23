@@ -41,6 +41,7 @@ class CellularAutomaton():
         self,
         progress_bar : object,
         output : str,
+        seed : int = None,
         **options
     ) -> None:
         self.progress_bar = progress_bar        
@@ -65,7 +66,8 @@ class CellularAutomaton():
         del options
         
         self.rule((0,), set_threshold=True)
-        self.seed = time_ns()
+        if seed == None: self.seed = time_ns()
+        else: self.seed = seed
         self.rng = np.random.default_rng(self.seed)
         self.ic()
         self.mask = np.zeros(shape=self.dim, dtype=np.int8)
@@ -79,6 +81,14 @@ class CellularAutomaton():
         }
         self.series = Series()
         if 'array' in self.output: self.tempdir = TD(dir='')
+
+    def initial_rational_00_05(self) -> None:
+        self.pg = 0.5 * self.rng.random(size=self.dim, dtype=np.float64)
+        self.fg = self.pg.copy()
+
+    def initial_rational_0_1(self) -> None:
+        self.pg = self.rng.random(size=self.dim, dtype=np.float64)
+        self.fg = self.pg.copy()
 
     def initial_rational_10_20(self) -> None:
         self.pg = (20 - 10) * self.rng.random(size=self.dim, dtype=np.float64) + 10
@@ -124,7 +134,14 @@ class CellularAutomaton():
 
     def control_perturbation_mass_lt_threshold_random_1_true(self, scale : str) -> None:
         if scale == 'perturbation':
-            if self.series.mass[-1] <= 0.54:  # non-conservative critical mass
+            if self.series.mass[-1] <= 0.54:  # non-conservative critical mass -> ~0.54 (0.538)
+                target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
+                self.pg[target] += 1
+                self.fg[target] += 1
+
+    def control_perturbation_mass_gt_threshold_random_1_true(self, scale : str) -> None:
+        if scale == 'perturbation':
+            if self.series.mass[-1] >= 0.54:  # non-conservative critical mass -> ~0.54 (0.538)
                 target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
                 self.pg[target] += 1
                 self.fg[target] += 1
@@ -133,7 +150,7 @@ class CellularAutomaton():
         if set_threshold: self.threshold = 1; return
         if self.pg[cell] >= self.threshold:
             conservation = 0.8  # ? factor divided by 2 * ndim to determine dissipative effect
-            index_cell = dict(zip([i for i in range(self.ndim)], cell))  # eg = {0: 6, 1: 9}
+            index_cell = dict(zip([i for i in range(self.ndim)], cell))  # eg: cell = (6,9) => index_cell = {0: 6, 1: 9}
             proaction =  {tuple(index_cell[i] for i in index_cell)}
             reaction =   set(tuple(index_cell[i]+1 if n/2 == i 
                               else index_cell[i]-1 if n//2 == i
@@ -192,6 +209,7 @@ class CellularAutomaton():
                 self.pert(); self.control('perturbation')
                 search_pset = set(map(tuple, np.transpose(np.nonzero(self.pg>=self.threshold))))
                 search_area = len(search_pset)
+                # print(f'{search_pset=}'); print(f'{search_area=}')
                 self.progress_bar.bar_step(self.data['state'])
             search_fset = set()
             iter_pset = iter(search_pset)

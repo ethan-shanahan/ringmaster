@@ -26,7 +26,7 @@ class DataWrangler():
         log = lambda x, b: np.log(x) / np.log(b)
         if   spec  > 0: return np.linspace(min(data),max(data),spec+1)
         elif spec == 0: return np.linspace(min(data)-0.5,max(data)+0.5,max(data)+1)
-        elif spec  < 0: return np.logspace(log(min(data)-0.5,(-spec/10)),log(max(data)+0.5,(-spec/10)),1+np.floor(log(max(data),(-spec/10))).astype(int),base=(-spec/10))
+        elif spec  < 0: return np.logspace(log(10,(-spec/10)),log(max(data)+0.5,(-spec/10)),1+np.floor(log(max(data),(-spec/10))).astype(int),base=(-spec/10))
         else: raise ValueError(f'Pardon?\t{spec=}')
 
     def mk_hist(self, data : list[int|float], bin_spec : int) -> np.ndarray:

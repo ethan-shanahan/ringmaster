@@ -1,4 +1,4 @@
-[DEFAULT]
+[DEFAULT] # protected table name
 samples = 4
 desired_stable_states = 5000
 dimensions = [25,25]
@@ -9,49 +9,73 @@ control_scheme = "none"
 update_rule = "OFC"
 activity_setting = "proactionary"
 
+[3D]
+dimensions = [10,10,10]
+
 [BRIEF]
 samples = 1
-desired_stable_states = 100
+desired_stable_states = 30
+
+[BRIEF_CONTROL]
+samples = 1
+desired_stable_states = 30
+control_scheme = "perturbation_mass_lt_threshold_random_1_true"
 
 [FAST]
 samples = 2
 desired_stable_states = 500
 dimensions = [10,10]
 
-# ste: ~00:25:00
+# ste: ~00:25:00 -> ~00:00:10
 [SLOW]
 samples = 10
 desired_stable_states = 10000
 dimensions = [50,50]
 
-[MANY_QUICK]
-samples = 20
-desired_stable_states = 1000
-dimensions = [10,10]
+# [MANY_QUICK]
+# samples = 20
+# desired_stable_states = 1000
+# dimensions = [10,10]
 
-[ONE_LONG]
+[SINGLE]
+initial_condition = "rational_0_1"
 samples = 1
-desired_stable_states = 100000
+desired_stable_states = 200000
 dimensions = [50,50]
 
-[3D]
-dimensions = [10,10,10]
+[SINGLE_CONTROL]
+initial_condition = "rational_0_1"
+samples = 1
+desired_stable_states = 200000
+dimensions = [50,50]
+control_scheme = "perturbation_mass_gt_threshold_random_1_true"
 
 [BTW_DEFAULT]
 initial_condition = "integer_10_30"
 perturbation_scheme = "random_1"
 update_rule = "ABS"
 
-[BTW_SLOW]
-samples = 10
-desired_stable_states = 10000
-dimensions = [50,50]
+# [BTW_SLOW]
+# samples = 10
+# desired_stable_states = 10000
+# dimensions = [50,50]
+# initial_condition = "integer_10_30"
+# perturbation_scheme = "random_1"
+# update_rule = "ABS"
+
+[BTW_SINGLE]
+samples = 1
+desired_stable_states = 100000
+dimensions = [30,30]
 initial_condition = "integer_10_30"
 perturbation_scheme = "random_1"
 update_rule = "ABS"
 
-[CONTROL]
+[BTW_CONTROL_SINGLE]
 samples = 1
 desired_stable_states = 100000
-dimensions = [50,50]
+dimensions = [30,30]
+initial_condition = "integer_10_30"
+perturbation_scheme = "random_1"
 control_scheme = "perturbation_mass_lt_threshold_random_1_true"
+update_rule = "ABS"
