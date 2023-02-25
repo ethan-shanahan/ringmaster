@@ -200,6 +200,15 @@ class CellularAutomaton():
             area = len(pset)
             return pset, area
 
+    def perturbation_random1true(self) -> tuple[list[tuple],int]:
+        target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
+        # print(f"Random Perturbation of Cell {target}")
+        self.pg[target] += 1  # the perturbation itself
+        self.fg[target] += 1
+        pset = [target]
+        area = len(pset)
+        return pset, area
+
     def perturbation_random1causal(self) -> tuple[list[tuple],int]:
         x = 1
         while len(causal := np.argwhere(self.pg == self.threshold - x)) == 0:
