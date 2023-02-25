@@ -1,4 +1,2 @@
 # ringmaster
-Controlling Self-Organised Criticality
-
-Support for Python 3.11
+Here are old version files of the project.
