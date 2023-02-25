@@ -3,9 +3,37 @@ import pkg.utilities as u  # Utilities
 from pkg.CA_v12 import CellularAutomaton as CA  # Cellular Automaton - version 12
 from pkg.DW_v02 import DataWrangler as DW  # Data Wrangler - version 02
 # from pkg import VI_v11 as vi  # Visual Interface - version 11
+import configparser
 import numpy as np
 from matplotlib import pyplot as mplp
 from statistics import mean, stdev
+
+
+class MyParser(configparser.ConfigParser):
+    def __init__(self) -> None:
+        super().__init__(
+            converters={'tuple': lambda s: tuple(int(a) for a in s.split(','))},
+            interpolation=configparser.ExtendedInterpolation()
+        )
+        self.read(u.get_src() + '\config.ini')
+        u.uprint('The following presets were found:', *self.sections(), sep='    ', end='\n\n')
+        self.preset = input('Please enter the name of the preset you would like to use,'
+                              ' or enter none to use the default settings.\t\t| ') or 'DEFAULT'
+    
+    def as_dict(self) -> dict:
+        if self.preset == 'DEFAULT': d = self.defaults()
+        else: d = dict.fromkeys(self.options(self.preset))
+        u.uprint(f'\nUsing {self.preset}:')
+        for o in d:
+            u.uprint('\t', o, ' = ', self[self.preset][o])
+            if ',' in self[self.preset][o]:
+                d[o] = self[self.preset].gettuple(o)
+            elif all(char.isnumeric() for char in self[self.preset][o]):
+                d[o] = self[self.preset].getint(o)
+            else:
+                d[o] = self[self.preset].get(o)
+        u.uprint('\n')
+        return d
 
 
 class Machine():

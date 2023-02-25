@@ -1,8 +1,8 @@
-import os, sys, time, math, tomllib
+import os, sys, time, math, tomli
 
 def parse_config() -> dict:
     with open(f'{get_src()}/config.toml', mode='rb') as toml:
-        config = tomllib.load(toml)
+        config = tomli.load(toml)
     options = config.pop('DEFAULT')
     print(f'\nThe following presets were found: {list(config.keys())}', sep=' - ', end='\n\n')
     if preset := input('Please enter the name of the preset you would like to use,'
