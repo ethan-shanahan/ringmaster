@@ -1,4 +1,4 @@
 # ringmaster
 Controlling Self-Organised Criticality
 
-Support for Python 3.11
+Support for Python 3.10
