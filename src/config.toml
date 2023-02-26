@@ -1,26 +1,37 @@
 [DEFAULT] # protected table name
 samples = 4
-skip_transient_states = 0
+skip_transient_states = 1
 desired_stable_states = 5000
 dimensions = [25,25]
-initial_condition = "rational_10_20"
+initial_condition = "rational_0_1"
 boundary_condition = "cliff"
 perturbation_scheme = "global_maximise"
 control_scheme = "none"
 update_rule = "OFC"
 activity_setting = "proactive"
 
+[1]
+samples = 1
+[2]
+skip_transient_states = 1000
+desired_stable_states = 6000
+[3]
+samples = 1
+skip_transient_states = 1000
+desired_stable_states = 6000
+
 [3D]
 dimensions = [10,10,10]
 
 [BRIEF]
 samples = 2
+skip_transient_states = 5
 desired_stable_states = 10
-
 [BRIEF_CONTROL]
-samples = 1
-desired_stable_states = 30
-control_scheme = "control_perturbation_series_mass_lt_critical_random_1_true"
+samples = 2
+skip_transient_states = 5
+desired_stable_states = 10
+control_scheme = "manual_perturbation_series_mass_lt_critical_random_1_true"
 
 [FAST]
 samples = 2
@@ -30,8 +41,21 @@ dimensions = [10,10]
 # ste: ~00:25:00 -> ~00:00:10
 [SLOW]
 samples = 10
-desired_stable_states = 10000
+skip_transient_states = 5000
+desired_stable_states = 30000
 dimensions = [50,50]
+[SLOW_CONTROL_LT]
+samples = 10
+skip_transient_states = 5000
+desired_stable_states = 30000
+dimensions = [50,50]
+control_scheme = "manual_perturbation_series_mass_lt_critical_random_1_true"
+[SLOW_CONTROL_GT]
+samples = 10
+skip_transient_states = 5000
+desired_stable_states = 30000
+dimensions = [50,50]
+control_scheme = "manual_perturbation_series_mass_gt_critical_random_1_true"
 
 # [MANY_QUICK]
 # samples = 20
@@ -49,7 +73,7 @@ initial_condition = "rational_0_1"
 samples = 1
 desired_stable_states = 200000
 dimensions = [50,50]
-control_scheme = "control_perturbation_series_mass_lt_critical_random_1_true"
+control_scheme = "manual_perturbation_series_mass_lt_critical_random_1_true"
 
 [BTW_DEFAULT]
 initial_condition = "integer_10_30"

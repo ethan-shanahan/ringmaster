@@ -1,4 +1,4 @@
-import os, sys, time, math, tomllib
+import os, sys, time, math, tomllib, functools
 
 _outputting = False
 
@@ -63,6 +63,12 @@ def dim_check(subject : tuple[int], dim : tuple[int], ndim : int) -> bool:
     for n in range(ndim): checker.append(-1 < subject[n] < dim[n])
     return all(checker)
 
+def recursive_getattr(base_object, attr : str):
+    '''Finds the dot called attribute of base_object by recursively calling getattr on the dot delimited attr.'''
+    found = functools.reduce(lambda obj, at: getattr(obj, at, None), attr.split('.'), base_object)
+    if found == None: raise ValueError
+    else: return found
+
 
 class ProgressBar():
     '''A progress bar, but dirty.'''
@@ -73,7 +79,7 @@ class ProgressBar():
         self.footer = '*'*self.buffer + f'*{" " + footer + " ":*^100}*' + '*'*35 + '\n'
         self.jobs = jobs
         self.j = 1
-        self.offset = 0
+        self.offset = 1
         self.steps_len = intlen(steps) if intlen(steps) > 3 else 4
         h = (
             f'{entity:^{self.buffer}}'+
@@ -100,7 +106,7 @@ class ProgressBar():
             self.start_time = time.time()
             self.start = False
         m, s = divmod(round(self.init_time+time.time()-self.start_time), 60)
-        if current_step == 0: self.offset = 1
+        # if current_step == 0: self.offset = 1
         current_step = self.offset + current_step
         percent = int((current_step / self.steps) * 100)
         done = '█' * percent
@@ -111,7 +117,6 @@ class ProgressBar():
             f'| {current_step:{self.steps_len}d}/{self.steps:<{self.steps_len}d} [{percent:3}%] ~{f"{m:02d}:{s:02d}":^9}~'
         )
         if current_step != self.steps:
-            # print(f'{current_step=}    ')
             if current_step == 1: print(bar, end='\r')
             else:
                 if percent != 0 and percent % 10 == 0:
@@ -119,7 +124,7 @@ class ProgressBar():
                     self.eta = est_total - sum(self.job_times) - (self.init_time+time.time()-self.start_time)
                     m, s = divmod(round(self.eta), 60)
                     bar += f'{f"{m:02d}:{s:02d}":^9}'
-                if ((current_step / self.steps) * 100) % 1 == 0:
+                if math.isclose(((current_step / self.steps) * 100) % 1, 0, rel_tol=0.001):
                     print(bar, end='\r')
         else:
             self.job_times.append(self.init_time+time.time()-self.start_time)

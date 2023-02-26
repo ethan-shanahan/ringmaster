@@ -5,10 +5,10 @@ from scipy.optimize import curve_fit
 class DataWrangler():
     def __init__(self, data : list[dict[str,list[int|float]]]) -> None:
         match (len(data[0]) > 1, len(data) > 1):
-            case (False, False) : self.data = next(iter(data[0].values())); self.wrangle = self.hist
+            case (False, False) : self.data = next(iter(data[0].values()));                             self.wrangle = self.hist
             case (False, True)  : self.data = [next(iter(data[i].values())) for i in range(len(data))]; self.wrangle = self.avg_hist
             case (True,  False) : self.data = data[0]; self.wrangle = self.series
-            case (True,  True)  : self.data = data; self.wrangle = self.avg_series
+            case (True,  True)  : self.data = data;    self.wrangle = self.avg_series
         self.results : dict[str,np.ndarray] = {}
     
 
@@ -29,27 +29,28 @@ class DataWrangler():
         elif spec  < 0: return np.logspace(log(10,(-spec/10)),log(max(data)+0.5,(-spec/10)),1+np.floor(log(max(data),(-spec/10))).astype(int),base=(-spec/10))
         else: raise ValueError(f'Pardon?\t{spec=}')
 
-    def mk_hist(self, data : list[int|float], bin_spec : int) -> np.ndarray:
-        yhist, xhist = np.histogram(data, self.binner(data, bin_spec), density=False)
-        # print(f'{[xhist,yhist]=}')
-        xhist = self.binner(xhist, bin_spec, mean_bins=True)
-        # print(f'{[xhist,yhist]=}')
+    def mk_hist(self, data : list[int|float], bin_spec : int, bins : np.ndarray[float] = None) -> np.ndarray:
+        if type(bins) == type(None):
+            yhist, xhist = np.histogram(data, self.binner(data, bin_spec), density=False)
+            xhist = self.binner(xhist, bin_spec, mean_bins=True)
+        else:
+            yhist, xhist = np.histogram(data, bins, density=False)
+            xhist = self.binner(xhist, bin_spec, mean_bins=True)
         return np.asarray([xhist,yhist])
     
     def hist(self, bin_spec : int) -> np.ndarray:
         result = self.mk_hist(self.data, bin_spec)
         result = result[:,~np.any(result == 0, axis=0)]
-        # print(f'{result=}')
         self.results['hist'] = result
         return result
 
     def avg_hist(self, bin_spec : int) -> np.ndarray:
         samples = []
         for d in self.data: samples.extend(d)
+        bins = self.binner(samples, bin_spec)
         hists = []
-        for d in self.data: hists.append(self.mk_hist(d, bin_spec))
+        for d in self.data: hists.append(self.mk_hist(d, bin_spec, bins=bins))
         result = np.dstack(hists)[:,np.all(np.dstack(hists) != 0, axis=(0,2)),:].mean(axis=2)
-        # print(f'{result=}')
         self.results['hist'] = result
         return result
 
