@@ -1,0 +1,31 @@
+[DEFAULT] # protected table name
+samples = 10
+skip_transient_states = 10000
+desired_stable_states = 50000
+dimensions = [50,50]
+initial_condition = "rational_0_1"
+boundary_condition = "cliff"
+perturbation_scheme = "global_maximise"
+control_scheme = "none"
+update_rule = "OFC"
+activity_setting = "proactive"
+
+[CONTROLLED_SERIES]
+control_scheme = "manual_perturbation_series_mass_lt_critical_random_1_true"
+
+[CONTROLLED_PARALLEL]
+control_scheme = "natural_perturbation_parallel_mass_lt_critical_random_1_true"
+
+[CONTROLLED_ONLY]
+perturbation_scheme = "none"
+control_scheme = "manual_perturbation_series_mass_lt_critical_random_1_true"
+
+[RANDOM_1]
+perturbation_scheme ="none"
+control_scheme = "manual_perturbation_series_random_1_true"
+
+[TEST]
+samples = 1
+skip_transient_states = 5
+desired_stable_states = 10
+control_scheme = "natural_perturbation_parallel_mass_lt_critical_random_1_true"

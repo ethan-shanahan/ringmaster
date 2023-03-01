@@ -6,39 +6,41 @@ from pkg.VI_v11 import VisualInterface as VI    # Visual Interface   - version 1
 
 #* user definitions...
 # region
-machines : int       = 3                      # repeats the entire process
+machines : int       = 5                      # repeats the entire process
+model    : str       = 'OFC'
 output   : str       = 'perturbation'         # passed to CA, determines what gets recorded in Series
-extract  : list[str] = ['natural_pert.size']  # list of attributes of Series to be analysed
+extract  : list[str] = None  # list of attributes of Series to be analysed
+                    # ['natural_pert.size']
 # endregion
 #* operations below...
 # region
 final = []
 visual = VI(draft=True)
-machine_id : str = 'A'
-for m in range(machines):
+for m in range(1, 1+machines):
     #! pass argument to parse_config to predetermine the preset
-    config     : dict       = u.parse_config()
-    seed       : int | None = config.pop('seed', None)
-    samples    : int        = config.pop('samples')
+    config, preset       = u.parse_config(model)
+    seed    : int | None = config.pop('seed', None)
+    samples : int        = config.pop('samples')
 
-    p = u.ProgressBar(header=f'Activated Machine {machine_id}', footer=f'Completed Machine {machine_id}', entity='seed', jobs=samples, steps=config['skip_transient_states'] + config['desired_stable_states'])
+    p = u.ProgressBar(header=f'Activated {model} {preset} ({m}/{machines})', footer=f'Completed {model} {preset} ({m}/{machines})', entity='seed', jobs=samples, steps=config['skip_transient_states'] + config['desired_stable_states'])
 
     autos = []
     for _ in range(samples):
         ca = CA(progress_bar=p, output=output, seed=seed, **config); ca.run()
         autos.append(ca)
 
-    extract = (input('Please enter the dotted system attributes that you wish to analyse, separated by spaces.\t\t| ') or 'natural_pert.size').split(' ')
-    u.pprint(f'Analysing... {extract}')
-    data = DW([dict([(ext, u.recursive_getattr(autos[s].series, ext)) for ext in extract]) for s in range(samples)])
-    hist = data.wrangle(0)
+    if extract == None: extracting = input('Please enter the dotted system attributes that you wish to analyse, separated by spaces.\t\t| ').split(' ')
+    else: extracting = extract
 
-    # visual.plotter(data=hist, title=' '.join([machine_id, *extract]))
+    u.pprint(f'Analysing... {extracting}')
+
+    data = DW([dict([(ext, u.recursive_getattr(autos[s].series, ext)) for ext in extracting]) for s in range(samples)])
+    hist = data.wrangle()
+
+    # visual.plotter(data=hist, title=' '.join([machine_id, *extracting]))
     final.append(hist)
 
-    machine_id = chr(ord(machine_id) + 1)
-
-visual.plotter(data=final, title=' '.join([*extract]))
+visual.plotter(data=final, title=' '.join(['pert.size']))
 visual.show()
 # endregion
 if __name__ == '__main__':

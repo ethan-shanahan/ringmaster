@@ -23,7 +23,7 @@ class VisualInterface():
         if type(data) == np.ndarray:
             ax.plot(data[0], data[1], '.b', label=title)
         elif type(data) == list:
-            colours = ('b', 'r', 'g')
+            colours = ('b', 'r', 'g', 'y', 'm', 'c')
             for i, d in enumerate(data): ax.plot(d[0], d[1], f'.{colours[i]}', label=f'{i} ~ {title}')
 
         ax.grid(); ax.legend()

@@ -1,0 +1,17 @@
+[DEFAULT] # protected table name
+samples = 4
+skip_transient_states = 1000
+desired_stable_states = 5000
+dimensions = [25,25]
+initial_condition = "integer_10_30"
+boundary_condition = "cliff"
+perturbation_scheme = "random_1"
+control_scheme = "none"
+update_rule = "ABS"
+activity_setting = "proactive"
+
+[SLOW]
+samples = 10
+skip_transient_states = 10000
+desired_stable_states = 50000
+dimensions = [50,50]

@@ -2,26 +2,29 @@ import os, sys, time, math, tomllib, functools
 
 _outputting = False
 
-def parse_config() -> dict:
-    with open(f'{get_src()}/config.toml', mode='rb') as toml:
+def parse_config(model : str) -> tuple[dict, str]:
+    with open(f'{get_src()}/config-{model}.toml', mode='rb') as toml:
         config = tomllib.load(toml)
     options : dict = config.pop('DEFAULT')
-    print(f'\nThe following presets were found: {list(config.keys())}', sep=' - ', end='\n\n')
-    if preset := input('Please enter the name of the preset you would like to use, '
-                        'or enter none to use the default settings.\t\t| '): options.update(config[preset])
-    else: preset = 'DEFAULT'
-    print(); pprint(indent := f'Loading {preset}:') ; indent = ' ' * len(indent)
+    print(f'\nThe following {model} presets were found: {list(config.keys())}', sep=' - ', end='\n\n')
+    while True:
+        if preset := input('Please enter the name of the preset you would like to use, or enter none to use the default settings.\t\t| '):
+            try: options.update(config[preset]); break
+            except KeyError: print('That is not a valid preset...'); continue
+        else: preset = 'DEFAULT'; break
+    print(); pprint(indent := f'Loading {model} {preset}:'); indent = ' ' * len(indent)
     for k, v in options.items(): pprint(f'{indent}{k:.<25}{v}')
     pprint()
-    if seed := input('Please enter the seed you would like to use, or "r" to repeatedly use the same automatically generated seed, '
-                                'or enter none ("") to use a unique seed for each sample.\t\t| '):
-        if seed == 'r':
-            options.update({'seed': (seed := time.time_ns())})
-        else:
-            try: options.update({'seed': (seed := int(seed))})
-            except ValueError: raise
+    while True:
+        if seed := input('Please enter the seed you would like to use, or "r" to repeatedly use the same automatically generated seed, or enter none ("") to use a unique seed for each sample.\t\t| '):
+            if seed == 'r':
+                options.update({'seed': (seed := time.time_ns())}); break
+            else:
+                try: options.update({'seed': (seed := int(seed))}); break
+                except ValueError: print('That is not a valid seed...'); continue
+        else: break
     print(); pprint(f'Machine Seeded with: {seed}') if seed else pprint(f'Machine Seeded with: ~automatic~'); pprint()
-    return options
+    return options, preset
 
 def get_src() -> str:
     '''Determines the absolute path of the project's src folder.'''

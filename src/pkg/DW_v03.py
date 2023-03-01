@@ -38,13 +38,13 @@ class DataWrangler():
             xhist = self.binner(xhist, bin_spec, mean_bins=True)
         return np.asarray([xhist,yhist])
     
-    def hist(self, bin_spec : int) -> np.ndarray:
+    def hist(self, bin_spec : int = 0) -> np.ndarray:
         result = self.mk_hist(self.data, bin_spec)
         result = result[:,~np.any(result == 0, axis=0)]
         self.results['hist'] = result
         return result
 
-    def avg_hist(self, bin_spec : int) -> np.ndarray:
+    def avg_hist(self, bin_spec : int = 0) -> np.ndarray:
         samples = []
         for d in self.data: samples.extend(d)
         bins = self.binner(samples, bin_spec)

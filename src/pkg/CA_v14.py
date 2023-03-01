@@ -90,7 +90,7 @@ class CellularAutomaton():
             elif 'none' in output and ~any([o in output for o in ['perturbation', 'event']]):
                 self.output = output
             else:
-                raise ValueError(f'Output, none, is not compatible with outputs, perturbation or event.')
+                raise ValueError(f'Output, none, is incompatible with outputs, perturbation or event.')
         else: 
             raise ValueError(f'Output, {output}, must contain at least one of ["none", "perturbation", "event", "array"]')
 
@@ -152,15 +152,17 @@ class CellularAutomaton():
     # endregion
     #* PERTURBATION SCHEMES
     # region
-    def perturbation_global_maximise(self) -> None:
+    def perturbation_none(self) -> None:
         self.control('natural_perturbation_parallel')
+
+    def perturbation_global_maximise(self) -> None:
         magnitude = 1 - np.amax(self.pg)
         self.data['pert']['magnitude'] += magnitude
         self.pg += magnitude
         self.fg += magnitude
+        self.control('natural_perturbation_parallel')
     
     def perturbation_random_1(self) -> None:
-        self.control('natural_perturbation_parallel')
         magnitude = 0
         while True:
             target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
@@ -169,38 +171,39 @@ class CellularAutomaton():
             magnitude += 1
             if self.pg[target] >= self.threshold: break
         self.data['pert']['magnitude'] += magnitude
+        self.control('natural_perturbation_parallel')
     # endregion
     #* CONTROL STRATEGIES
     # region
     def control_none(self, scale : str, obtain : bool = False) -> None:
         return
 
-    def control_natural_perturbation_parallel_none(self, scale : str) -> None:
+    def control_natural_perturbation_parallel_none(self, scale : str, obtain : bool = False) -> None:
         if all([case in scale for case in ['natural', 'perturbation', 'parallel']]):
             return
-    def control_manual_perturbation_parallel_none(self, scale : str) -> None:
+    def control_manual_perturbation_parallel_none(self, scale : str, obtain : bool = False) -> None:
         if all([case in scale for case in ['manual', 'perturbation', 'parallel']]):
             return
-    def control_natural_perturbation_series_none(self, scale : str) -> None:
+    def control_natural_perturbation_series_none(self, scale : str, obtain : bool = False) -> None:
         if all([case in scale for case in ['natural', 'perturbation', 'series']]):
             return # impossible if natural and series
-    def control_manual_perturbation_series_none(self, scale : str) -> None:
+    def control_manual_perturbation_series_none(self, scale : str, obtain : bool = False) -> None:
         if all([case in scale for case in ['manual', 'perturbation', 'series']]):
             return # inevitable if manual or series
-    def control_natural_event_parallel_none(self, scale : str) -> None:
+    def control_natural_event_parallel_none(self, scale : str, obtain : bool = False) -> None:
         if all([case in scale for case in ['natural', 'event', 'parallel']]):
             return
-    def control_manual_event_parallel_none(self, scale : str) -> None:
+    def control_manual_event_parallel_none(self, scale : str, obtain : bool = False) -> None:
         if all([case in scale for case in ['manual', 'event', 'parallel']]):
             return
-    def control_natural_event_series_none(self, scale : str) -> None:
+    def control_natural_event_series_none(self, scale : str, obtain : bool = False) -> None:
         if all([case in scale for case in ['natural', 'event', 'series']]):
             return
-    def control_manual_event_series_none(self, scale : str) -> None:
+    def control_manual_event_series_none(self, scale : str, obtain : bool = False) -> None:
         if all([case in scale for case in ['manual', 'event', 'series']]):
             return
 
-    def control_perturbation_mass_gt_critical_random_1_causal(self, scale : str) -> None:
+    def control_perturbation_mass_gt_critical_random_1_causal(self, scale : str, obtain : bool = False) -> None:
         '''WIP'''
         if scale == 'perturbation':
             if self.series.natural_pert.mass[-1] >= 0.62:  # conservative critical mass
@@ -210,12 +213,33 @@ class CellularAutomaton():
                 self.pg[target] += 0.1
                 self.fg[target] += 0.1
 
+    def control_natural_perturbation_parallel_mass_lt_critical_random_1_true(self, scale : str, obtain : bool = False) -> None:
+        if all([case in scale for case in ['natural', 'perturbation', 'parallel']]):
+            if obtain:
+                self.feedback = self.data['pert']['mass']
+            elif self.feedback <= 0.54:  # non-conservative critical mass -> ~0.54 (empirical, conservation=0.8)
+                target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
+                self.pg[target] += 1
+                self.fg[target] += 1
+                self.data['pert']['parallel'] += 1
+
+    def control_manual_perturbation_series_random_1_true(self, scale : str, obtain : bool = False) -> None:
+        '''Control if the most recent mass is less than or equal to the uncontrolled critical mass. Intended Rule: OFC'''
+        if all([case in scale for case in ['manual', 'perturbation', 'series']]):
+            if obtain: 
+                self.feedback = self.data['pert']['mass']
+            else:  # guaranteed control
+                target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
+                self.pg[target] += 1
+                self.fg[target] += 1
+                self.data['pert']['magnitude'] += 1
+
     def control_manual_perturbation_series_mass_lt_critical_random_1_true(self, scale : str, obtain : bool = False) -> None:
         '''Control if the most recent mass is less than or equal to the uncontrolled critical mass. Intended Rule: OFC'''
         if all([case in scale for case in ['manual', 'perturbation', 'series']]):
             if obtain: 
                 self.feedback = self.data['pert']['mass']
-            if self.feedback <= 0.54:  # non-conservative critical mass -> ~0.54 (empirical, conservation=0.8)
+            elif self.feedback <= 0.54:  # non-conservative critical mass -> ~0.54 (empirical, conservation=0.8)
                 target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
                 self.pg[target] += 1
                 self.fg[target] += 1
@@ -226,7 +250,7 @@ class CellularAutomaton():
         if all([case in scale for case in ['manual', 'perturbation', 'series']]):
             if obtain: 
                 self.feedback = self.data['pert']['mass']
-            if self.feedback <= 0.54:  # non-conservative critical mass -> ~0.54 (empirical, conservation=0.8)
+            elif self.feedback <= 0.54:  # non-conservative critical mass -> ~0.54 (empirical, conservation=0.8)
                 target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
                 self.pg[target] += 1
                 self.fg[target] += 1
@@ -298,6 +322,7 @@ class CellularAutomaton():
             return
         else:
             self.progress_bar.bar_step(self.data['state'])
+            self.control('natural_perturbation_parallel', obtain=True)
 
     def natural(self, init : bool) -> tuple[set[tuple[int]], int]:
         if init:
