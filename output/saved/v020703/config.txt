@@ -1,0 +1,19 @@
+How many samples should be gathered? [10]               | 5
+Use default values?
+
+dimensions=             (10,10)
+boundary condition=     cliff
+initial condition=      max30min10
+update rule=            ASM
+perturbation scheme=    random1causal
+activity=               proactionary
+
+([y]/n)                         n
+What dimensions should be used? [10,10]                         | 40,40
+What boundary condition should be used? [cliff]                 | 
+What initial conditions should be applied? [max30min10]         | 
+What update rule should be implemented? [ASM]                   | 
+What perturbation scheme should be performed? [random1causal]   | 
+What type of activity should be considered? [proactionary]      | 
+
+How many stable states should be found? [10]                    | 10000

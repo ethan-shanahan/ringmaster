@@ -8,6 +8,7 @@ import numpy as np
 
 import pkg.utilities as u
 
+# TODO: add mass to config, assign a mass function on init
 
 @dataclass(slots=True)
 class EventTimeScale():
