@@ -6,10 +6,10 @@ from pkg.VI_v11 import VisualInterface as VI    # Visual Interface   - version 1
 
 #* user definitions...
 # region
-machines : int       = 5                      # repeats the entire process
+machines : int       = 1                      # repeats the entire process
 model    : str       = 'OFC'
 output   : str       = 'perturbation'         # passed to CA, determines what gets recorded in Series
-extract  : list[str] = None  # list of attributes of Series to be analysed
+extract  : list[str] = ['natural_pert.size', 'manual_pert.size']  # list of attributes of Series to be analysed
                     # ['natural_pert.size']
 # endregion
 #* operations below...
@@ -29,16 +29,21 @@ for m in range(1, 1+machines):
         ca = CA(progress_bar=p, output=output, seed=seed, **config); ca.run()
         autos.append(ca)
 
-    if extract == None: extracting = input('Please enter the dotted system attributes that you wish to analyse, separated by spaces.\t\t| ').split(' ')
-    else: extracting = extract
+    if extract == None:
+        extracting = input('Please enter the dotted system attributes that you wish to analyse, separated by spaces.\t\t| ').split(' ')
+    else:
+        extracting = extract
 
-    u.pprint(f'Analysing... {extracting}')
+    for ext in extracting:
+        u.pprint(f'Analysing... {ext}')
+        data = DW([dict([(ext, u.recursive_getattr(autos[s].series, ext))]) for s in range(samples)])
+        hist = data.wrangle()
+        final.append(hist)
 
-    data = DW([dict([(ext, u.recursive_getattr(autos[s].series, ext)) for ext in extracting]) for s in range(samples)])
-    hist = data.wrangle()
-
-    # visual.plotter(data=hist, title=' '.join([machine_id, *extracting]))
-    final.append(hist)
+    # u.pprint(f'Analysing... {extracting}')
+    # data = DW([dict([(ext, u.recursive_getattr(autos[s].series, ext)) for ext in extracting]) for s in range(samples)])
+    # hist = data.wrangle()
+    # final.append(hist)
 
 visual.plotter(data=final, title=' '.join(['pert.size']))
 visual.show()

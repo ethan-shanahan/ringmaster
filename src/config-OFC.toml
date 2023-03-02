@@ -1,8 +1,8 @@
 [DEFAULT] # protected table name
-samples = 10
-skip_transient_states = 10000
-desired_stable_states = 50000
-dimensions = [50,50]
+samples = 4
+skip_transient_states = 5000
+desired_stable_states = 5000
+dimensions = [25,25]
 initial_condition = "rational_0_1"
 boundary_condition = "cliff"
 perturbation_scheme = "global_maximise"
@@ -28,4 +28,4 @@ control_scheme = "manual_perturbation_series_random_1_true"
 samples = 1
 skip_transient_states = 5
 desired_stable_states = 10
-control_scheme = "natural_perturbation_parallel_mass_lt_critical_random_1_true"
+# control_scheme = "natural_perturbation_parallel_mass_lt_critical_random_1_true"

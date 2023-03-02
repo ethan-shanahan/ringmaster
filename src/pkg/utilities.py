@@ -16,9 +16,9 @@ def parse_config(model : str) -> tuple[dict, str]:
     for k, v in options.items(): pprint(f'{indent}{k:.<25}{v}')
     pprint()
     while True:
-        if seed := input('Please enter the seed you would like to use, or "r" to repeatedly use the same automatically generated seed, or enter none ("") to use a unique seed for each sample.\t\t| '):
+        if seed := input('Please enter the seed you would like to use, or enter none ("") to use a unique seed for each sample.\t\t| '):
             if seed == 'r':
-                options.update({'seed': (seed := time.time_ns())}); break
+                options.update({'seed': (seed := time.time_ns())}); break #! DEPRECATED: it is pointless to use the same seed for every sample, try every machine
             else:
                 try: options.update({'seed': (seed := int(seed))}); break
                 except ValueError: print('That is not a valid seed...'); continue
