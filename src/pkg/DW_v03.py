@@ -3,7 +3,12 @@ from scipy.optimize import curve_fit
 
 
 class DataWrangler():
-    def __init__(self, data : list[dict[str,list[int|float]]]) -> None:
+    def __init__(self, data : list[dict[str,list[int|float]]] = None, from_file = None, log_data : bool = False, trim_upto_10 : bool = False, trim_downto_10 : bool = False) -> None:
+        self.log_data = log_data
+        self.trim_upto_10 = trim_upto_10
+        self.trim_downto_10 = trim_downto_10
+        if from_file == None: self.to_file = self.write_data(data)
+        else: data = self.read_data(from_file)
         match (len(data[0]) > 1, len(data) > 1):
             case (False, False) : self.data = next(iter(data[0].values()));                             self.wrangle = self.hist
             case (False, True)  : self.data = [next(iter(data[i].values())) for i in range(len(data))]; self.wrangle = self.avg_hist
@@ -11,6 +16,13 @@ class DataWrangler():
             case (True,  True)  : self.data = data;    self.wrangle = self.avg_series
         self.results : dict[str,np.ndarray] = {}
     
+    @staticmethod
+    def write_data(from_data : list[dict[str,list[int|float]]]) -> str:
+        return '|'.join([';'.join([k + ':' + ','.join(map(str,v)) for k, v in d.items()]) for d in from_data])
+         
+    @staticmethod
+    def read_data(to_data : str) -> list[dict[str,list[float]]]:
+        return [dict([list(map(lambda enu: enu[1] if enu[0] == 0 else list(map(float, enu[1].split(','))), enumerate(item.split(':')))) for item in d.split(';')]) for d in to_data.split('|')]
 
     @staticmethod
     def binner(data : list[int|float] | np.ndarray, spec : int, mean_bins : bool = False) -> np.ndarray[float]:
@@ -25,7 +37,7 @@ class DataWrangler():
             else: return np.asarray(list(map(geo_mean, zip(data[1:], data[:-1]))))
         log = lambda x, b: np.log(x) / np.log(b)
         if   spec  > 0: return np.linspace(min(data),max(data),spec+1)
-        elif spec == 0: return np.linspace(min(data)-0.5,max(data)+0.5,max(data)+1)
+        elif spec == 0: return np.linspace(min(data)-0.5,max(data)+0.5,int(max(data)+1))
         elif spec  < 0: return np.logspace(log(10,(-spec/10)),log(max(data)+0.5,(-spec/10)),1+np.floor(log(max(data),(-spec/10))).astype(int),base=(-spec/10))
         else: raise ValueError(f'Pardon?\t{spec=}')
 
@@ -41,6 +53,9 @@ class DataWrangler():
     def hist(self, bin_spec : int = 0) -> np.ndarray:
         result = self.mk_hist(self.data, bin_spec)
         result = result[:,~np.any(result == 0, axis=0)]
+        if self.trim_upto_10: result = result[:,9:]
+        if self.trim_downto_10: result = result[:, :np.nonzero(result[1] == 1)[0][0]]
+        if self.log_data: result = np.log10(result)
         self.results['hist'] = result
         return result
 
@@ -49,8 +64,17 @@ class DataWrangler():
         for d in self.data: samples.extend(d)
         bins = self.binner(samples, bin_spec)
         hists = []
-        for d in self.data: hists.append(self.mk_hist(d, bin_spec, bins=bins))
+        least1 = None
+        for d in self.data:
+            h = self.mk_hist(d, bin_spec, bins=bins)
+            if least1 is None: least1 = np.nonzero(h[1] == 1)[0][0]
+            elif least1 > (l := np.nonzero(h[1] == 1)[0][0]): least1 = l
+            hists.append(h)
+        for n in range(len(hists)):
+            if self.trim_upto_10: hists[n] = hists[n][:,9:]
+            if self.trim_downto_10: hists[n] = hists[n][:, :least1]
         result = np.dstack(hists)[:,np.all(np.dstack(hists) != 0, axis=(0,2)),:].mean(axis=2)
+        if self.log_data: result = np.log10(result)
         self.results['hist'] = result
         return result
 
@@ -69,6 +93,16 @@ class DataWrangler():
         print(*params)
         return result
 
+    @staticmethod
+    def logged_power_law(x, a, C) -> np.float64:
+        '''P(x) ~ -a * x + C'''
+        return -a * x + C
+    
+    @staticmethod
+    def basic_power_law(x, a, C) -> np.float64:
+        '''P(x) ~ C * x^(-a)'''
+        return C * np.power(x, -a)
+    
     @staticmethod
     def modified_power_law(x, a, l, C) -> np.float64:
         '''P(x) ~ C * e^(-x/l) * x^(-a)'''

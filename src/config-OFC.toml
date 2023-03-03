@@ -1,5 +1,5 @@
 [DEFAULT] # protected table name
-samples = 4
+samples = 2
 skip_transient_states = 5000
 desired_stable_states = 5000
 dimensions = [25,25]
@@ -24,8 +24,15 @@ control_scheme = "manual_perturbation_series_mass_lt_critical_random_1_true"
 perturbation_scheme ="none"
 control_scheme = "manual_perturbation_series_random_1_true"
 
+[MAX]
+samples = 20
+skip_transient_states = 50000
+desired_stable_states = 50000
+dimensions = [100,100]
+
 [TEST]
-samples = 1
-skip_transient_states = 5
-desired_stable_states = 10
+samples = 2
+skip_transient_states = 50
+desired_stable_states = 50
+dimensions = [100,100]
 # control_scheme = "natural_perturbation_parallel_mass_lt_critical_random_1_true"
