@@ -30,9 +30,51 @@ skip_transient_states = 50000
 desired_stable_states = 50000
 dimensions = [100,100]
 
+[MOVIE]
+samples = 1
+skip_transient_states = 50000
+desired_stable_states = 500
+dimensions = [50,50]
+
+# 17 minutes
+[UNCONTROLLED]
+samples = 15
+skip_transient_states = 50000
+desired_stable_states = 500000
+dimensions = [50,50]
+
+# 20 minutes
+[CONTROLLED]
+samples = 15
+skip_transient_states = 50000
+desired_stable_states = 500000
+dimensions = [50,50]
+control_scheme = "manual_perturbation_series_mass_lt_baseline_linear_exacerbate"
+
+# 5 hours
+[OLAMI]
+samples = 20
+skip_transient_states = 50000
+desired_stable_states = 500000
+dimensions = [35,35]
+
+# 20 hours
+[BIG_OLAMI]
+samples = 20
+skip_transient_states = 50000
+desired_stable_states = 1000000
+dimensions = [50,50]
+
+# 7 hours
+[WEAK_OLAMI]
+samples = 20
+skip_transient_states = 50000
+desired_stable_states = 100000
+dimensions = [75,75]
+
 [TEST]
-samples = 2
-skip_transient_states = 50
-desired_stable_states = 50
-dimensions = [100,100]
-# control_scheme = "natural_perturbation_parallel_mass_lt_critical_random_1_true"
+samples = 5
+skip_transient_states = 5000
+desired_stable_states = 5000
+dimensions = [20,20]
+control_scheme = "manual_perturbation_series_mass_lt_baseline_linear_exacerbate"

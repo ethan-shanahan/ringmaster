@@ -3,16 +3,17 @@ import pkg.utilities as u                       # Utilities
 from pkg.CA_v14 import CellularAutomaton as CA  # Cellular Automaton - version 14
 from pkg.DW_v03 import DataWrangler as DW       # Data Wrangler      - version 03
 from pkg.VI_v11 import VisualInterface as VI    # Visual Interface   - version 11
-
+import numpy as np
+np.set_printoptions(linewidth=250, precision=3)
 #* user definitions...
 # region
-file_type : str       = 'read'
-file_dir  : str       = f'{u.get_src()[:-3]}test/data/v13140311/OFC.txt' # OFC-MAX_NatPertSize
-log_data  : bool      = False;      trim_up : bool = True;      trim_down : bool = True
+file_type : str       = 'write'
+file_dir  : str       = f'{u.get_src()[:-3]}test/data/v13140311/OFC_Controlled_ltLinear6_020_manualsizes.txt' # OFC-MAX_NatPertSize
+log_data  : bool      = False;      trim_up : bool = False;      trim_down : bool = False
 machines  : int       = 1                      # repeats the entire process
 model     : str       = 'OFC'
 output    : str       = 'perturbation'         # passed to CA, determines what gets recorded in Series
-extract   : list[str] = ['natural_pert.size']  # list of attributes of Series to be analysed
+extract   : list[str] = ['manual_pert.size']  # list of attributes of Series to be analysed
                       # ['natural_pert.size', 'manual_pert.size']
 # endregion
 #* operations below...

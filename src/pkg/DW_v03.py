@@ -37,16 +37,16 @@ class DataWrangler():
             else: return np.asarray(list(map(geo_mean, zip(data[1:], data[:-1]))))
         log = lambda x, b: np.log(x) / np.log(b)
         if   spec  > 0: return np.linspace(min(data),max(data),spec+1)
-        elif spec == 0: return np.linspace(min(data)-0.5,max(data)+0.5,int(max(data)+1))
+        elif spec == 0: return np.linspace(min(data)-0.5,max(data)+0.5,int((max(data)-min(data))+2))
         elif spec  < 0: return np.logspace(log(10,(-spec/10)),log(max(data)+0.5,(-spec/10)),1+np.floor(log(max(data),(-spec/10))).astype(int),base=(-spec/10))
         else: raise ValueError(f'Pardon?\t{spec=}')
 
     def mk_hist(self, data : list[int|float], bin_spec : int, bins : np.ndarray[float] = None) -> np.ndarray:
         if type(bins) == type(None):
-            yhist, xhist = np.histogram(data, self.binner(data, bin_spec), density=False)
+            yhist, xhist = np.histogram(data, self.binner(data, bin_spec), density=True)
             xhist = self.binner(xhist, bin_spec, mean_bins=True)
         else:
-            yhist, xhist = np.histogram(data, bins, density=False)
+            yhist, xhist = np.histogram(data, bins, density=True)
             xhist = self.binner(xhist, bin_spec, mean_bins=True)
         return np.asarray([xhist,yhist])
     
@@ -63,17 +63,20 @@ class DataWrangler():
         samples = []
         for d in self.data: samples.extend(d)
         bins = self.binner(samples, bin_spec)
+        # min_data = min(samples) / len(d)
         hists = []
         least1 = None
         for d in self.data:
             h = self.mk_hist(d, bin_spec, bins=bins)
-            if least1 is None: least1 = np.nonzero(h[1] == 1)[0][0]
-            elif least1 > (l := np.nonzero(h[1] == 1)[0][0]): least1 = l
+            if least1 is None: least1 = np.nonzero(h[1] == 0)[0][0]
+            elif least1 > (l := np.nonzero(h[1] == 0)[0][0]): least1 = l
             hists.append(h)
         for n in range(len(hists)):
             if self.trim_upto_10: hists[n] = hists[n][:,9:]
             if self.trim_downto_10: hists[n] = hists[n][:, :least1]
-        result = np.dstack(hists)[:,np.all(np.dstack(hists) != 0, axis=(0,2)),:].mean(axis=2)
+        #! use to ignore cutoff: result = np.dstack(hists)[:,np.all(np.dstack(hists) != 0, axis=(0,2)),:].mean(axis=2)
+        result = np.dstack(hists).mean(axis=2)
+        if result[0,0] == 0.0: result = result[:,1:]
         if self.log_data: result = np.log10(result)
         self.results['hist'] = result
         return result
@@ -86,8 +89,16 @@ class DataWrangler():
 
     def fitter(self, model : str) -> np.ndarray:
         data = next(iter(self.results.values()))
+        if model == 'modified_power_law':
+            sigmas = np.power(10, np.floor(np.log10(data[1]))*0.4)
+        elif model == 'basic_power_law':
+            orders = np.floor(np.log10(data[1]))
+            t = np.percentile(orders, 95); print(t)
+            orders[orders < t] = 1
+            sigmas = np.power(10, orders)
+        sigmas[sigmas == 0] = 10
         model = getattr(self, model)
-        params, _ = curve_fit(model, data[0], data[1])
+        params, _ = curve_fit(model, data[0], data[1], sigma=sigmas, absolute_sigma=False)
         result = np.asarray([data[0], model(data[0], *params)])
         self.results['fit'] = result
         print(*params)
@@ -101,12 +112,12 @@ class DataWrangler():
     @staticmethod
     def basic_power_law(x, a, C) -> np.float64:
         '''P(x) ~ C * x^(-a)'''
-        return C * np.power(x, -a)
+        return C * np.power(x, -(1+a))
     
     @staticmethod
     def modified_power_law(x, a, l, C) -> np.float64:
         '''P(x) ~ C * e^(-x/l) * x^(-a)'''
-        return C * np.exp(-x/l) * np.power(x, -a)
+        return C * np.exp(-x/l) * np.power(x, -(1+a))
 
 
 if __name__ == '__main__':

@@ -235,6 +235,72 @@ class CellularAutomaton():
                 self.fg[target] += 1
                 self.data['pert']['magnitude'] += 1
 
+    def control_manual_perturbation_series_mass_relative_neg_tot_baseline_linear(self, scale : str, obtain : bool = False) -> None:
+        '''Control if the most recent mass is less than or equal to the uncontrolled critical mass. Intended Rule: OFC'''
+        if all([case in scale for case in ['manual', 'perturbation', 'series']]):
+            if obtain: 
+                self.feedback = self.data['pert']['mass']
+            else:  # non-conservative critical mass -> ~0.54 (empirical, conservation=0.8)
+                target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
+                self.pg[target] += -1*(0.54 - self.feedback)
+                self.fg[target] += -1*(0.54 - self.feedback)
+                self.data['pert']['magnitude'] += -1*(0.54 - self.feedback)
+
+    def control_manual_perturbation_series_mass_relative_tot_baseline_linear(self, scale : str, obtain : bool = False) -> None:
+        '''Control if the most recent mass is less than or equal to the uncontrolled critical mass. Intended Rule: OFC'''
+        if all([case in scale for case in ['manual', 'perturbation', 'series']]):
+            if obtain: 
+                self.feedback = self.data['pert']['mass']
+            else:  # non-conservative critical mass -> ~0.54 (empirical, conservation=0.8)
+                target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
+                self.pg[target] += 1*(0.54 - self.feedback)
+                self.fg[target] += 1*(0.54 - self.feedback)
+                self.data['pert']['magnitude'] += 1*(0.54 - self.feedback)
+
+    def control_manual_perturbation_series_mass_relative_abs_baseline_linear(self, scale : str, obtain : bool = False) -> None:
+        '''Control if the most recent mass is less than or equal to the uncontrolled critical mass. Intended Rule: OFC'''
+        if all([case in scale for case in ['manual', 'perturbation', 'series']]):
+            if obtain: 
+                self.feedback = self.data['pert']['mass']
+            else:  # non-conservative critical mass -> ~0.54 (empirical, conservation=0.8)
+                target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
+                self.pg[target] += 1*abs(0.54 - self.feedback)
+                self.fg[target] += 1*abs(0.54 - self.feedback)
+                self.data['pert']['magnitude'] += 1*abs(0.54 - self.feedback)
+
+    def control_manual_perturbation_series_mass_lt_baseline_exp(self, scale : str, obtain : bool = False) -> None:
+        '''Control if the most recent mass is less than or equal to the uncontrolled critical mass. Intended Rule: OFC'''
+        if all([case in scale for case in ['manual', 'perturbation', 'series']]):
+            if obtain: 
+                self.feedback = self.data['pert']['mass']
+            elif self.feedback <= 0.54:  # non-conservative critical mass -> ~0.54 (empirical, conservation=0.8)
+                target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
+                self.pg[target] += np.exp(0.54 - self.feedback) - 1
+                self.fg[target] += np.exp(0.54 - self.feedback) - 1
+                self.data['pert']['magnitude'] += np.exp(0.54 - self.feedback) - 1
+
+    def control_manual_perturbation_series_mass_lt_baseline_linear(self, scale : str, obtain : bool = False) -> None:
+        '''Control if the most recent mass is less than or equal to the uncontrolled critical mass. Intended Rule: OFC'''
+        if all([case in scale for case in ['manual', 'perturbation', 'series']]):
+            if obtain: 
+                self.feedback = self.data['pert']['mass']
+            elif self.feedback <= 0.54:  # non-conservative critical mass -> ~0.54 (empirical, conservation=0.8)
+                target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
+                self.pg[target] += 1*(0.54 - self.feedback)
+                self.fg[target] += 1*(0.54 - self.feedback)
+                self.data['pert']['magnitude'] += 1*(0.54 - self.feedback)
+
+    def control_manual_perturbation_series_mass_lt_baseline_linear_exacerbate(self, scale : str, obtain : bool = False) -> None:
+        '''Control if the most recent mass is less than or equal to the uncontrolled critical mass. Intended Rule: OFC'''
+        if all([case in scale for case in ['manual', 'perturbation', 'series']]):
+            if obtain: 
+                self.feedback = self.data['pert']['mass']
+            elif self.feedback <= 0.54:  # non-conservative critical mass -> ~0.54 (empirical, conservation=0.8)
+                target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
+                self.pg[target] += 6*(0.54 - self.feedback)
+                self.fg[target] += 6*(0.54 - self.feedback)
+                self.data['pert']['magnitude'] += 6*(0.54 - self.feedback)
+
     def control_manual_perturbation_series_mass_lt_critical_random_1_true(self, scale : str, obtain : bool = False) -> None:
         '''Control if the most recent mass is less than or equal to the uncontrolled critical mass. Intended Rule: OFC'''
         if all([case in scale for case in ['manual', 'perturbation', 'series']]):
@@ -251,7 +317,7 @@ class CellularAutomaton():
         if all([case in scale for case in ['manual', 'perturbation', 'series']]):
             if obtain: 
                 self.feedback = self.data['pert']['mass']
-            elif self.feedback <= 0.54:  # non-conservative critical mass -> ~0.54 (empirical, conservation=0.8)
+            elif self.feedback >= 0.54:  # non-conservative critical mass -> ~0.54 (empirical, conservation=0.8)
                 target = tuple(self.rng.integers(self.dim[n]) for n in range(self.ndim))
                 self.pg[target] += 1
                 self.fg[target] += 1
@@ -263,7 +329,7 @@ class CellularAutomaton():
         if set_threshold: self.threshold = 1; return
         if self.pg[cell] >= self.threshold:
             self.control(f'{scale}_event_parallel')  #!WARNING
-            conservation = 0.8  # ? factor divided by 2 * ndim to determine dissipative effect
+            conservation = 0.8 # 0.8  # ? factor divided by 2 * ndim to determine dissipative effect
             magnitude = self.pg[cell] * (conservation/(self.ndim*2))#; print(); print(f'{self.pg[cell]=}'); print(f'{magnitude=}')
             index_cell = dict(zip([i for i in range(self.ndim)], cell))  # eg: cell = (6,9) => index_cell = {0: 6, 1: 9}
             proaction =  {tuple(index_cell[i] for i in index_cell)}
