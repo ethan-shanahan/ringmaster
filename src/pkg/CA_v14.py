@@ -442,7 +442,7 @@ class CellularAutomaton():
         while self.data['state'] < self.transient_states + self.stable_states:
             #* START of perturbation time-step, ie. one state of the sample
             for scale in ('start', 'natural', 'mid', 'manual', 'end'):
-                init_state  : bool = self.data['state'] == 0
+                init_state   : bool = self.data['state'] == 0
                 stable_state : bool = self.data['state'] >= self.transient_states
                 match scale:
                     case 'start'   : self.start(init_state); continue                    #?
